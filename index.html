@@ -1172,21 +1172,18 @@ function createRank() {
 // ══════════════════════════════════════════════
 // 데이터 & 렌더
 // ══════════════════════════════════════════════
-const MEMBERS = [{name:'박민준',rank:'경감',cls:'고위직',rp:47,trade:12,warn:0},{name:'이서연',rank:'경위',cls:'간부직',rp:39,trade:8,warn:0},{name:'최지훈',rank:'경사',cls:'일반직',rp:31,trade:15,warn:1},{name:'김도현',rank:'경위',cls:'고위직',rp:28,trade:5,warn:1},{name:'정성훈',rank:'순경',cls:'일반직',rp:11,trade:2,warn:0}];
-const RP_D=[{id:1,author:'박민준',type:'순찰 RP',content:'23구역 순찰 및 검문',time:'10분 전',status:'approved'},{id:2,author:'이서연',type:'체포/심문',content:'용의자 체포 및 심문',time:'1시간 전',status:'approved'},{id:3,author:'최지훈',type:'사건 처리',content:'교통사고 현장 처리',time:'2시간 전',status:'pending'},{id:4,author:'김도현',type:'순찰 RP',content:'항구 주변 순찰',time:'어제',status:'pending'},{id:5,author:'정성훈',type:'조직 미팅',content:'주간 업무 미팅',time:'어제',status:'pending'}];
-const TR_D=[{id:1,author:'최지훈',type:'물품 판매',peer:'시민 김철수',amount:50000,item:'방탄복',time:'1시간 전',status:'pending'},{id:2,author:'이서연',type:'서비스 제공',peer:'EMS 박간호',amount:0,item:'응급 협조',time:'3시간 전',status:'approved'},{id:3,author:'박민준',type:'내부 이체',peer:'팩션 금고',amount:200000,item:'-',time:'어제',status:'approved'}];
-const TX_D=[{type:'in',ic:'💰',t:'물품 판매 수입',d:'2025-06-02',a:'+$200,000'},{type:'out',ic:'🔫',t:'장비 구매',d:'2025-06-01',a:'-$80,000'},{type:'in',ic:'🤝',t:'협력 팩션 지원금',d:'2025-05-31',a:'+$500,000'},{type:'out',ic:'🏠',t:'거점 유지비',d:'2025-05-30',a:'-$150,000'},{type:'in',ic:'💎',t:'특수 임무 보상',d:'2025-05-29',a:'+$300,000'}];
-let NOTICES=[{type:'urgent',title:'[긴급] 6월 1일 서버 점검 안내',author:'총경 박민준',date:'2025-06-01',unread:true},{type:'notice',title:'6월 월례 회의 일정 공지',author:'경감 이서연',date:'2025-05-31',unread:true},{type:'event',title:'창단 1주년 기념 이벤트 안내',author:'총경 박민준',date:'2025-05-28',unread:false},{type:'notice',title:'신규 팩션원 교육 일정 안내',author:'경위 최지훈',date:'2025-05-25',unread:false}];
+// ── 실시간 데이터 (Firestore에서 로드) ──────────────────
+let MEMBERS  = [];
+let RP_D     = [];
+let TR_D     = [];
+let TX_D     = [];
+let NOTICES  = [];
 const TYPES={police:{p:'#2563EB',name:'TURN CITY PD',tag:'경찰'},ems:{p:'#EF4444',name:'TURN CITY EMS',tag:'EMS'},corp:{p:'#0EA5E9',name:'TURN CITY CORP',tag:'기업'},mafia:{p:'#7C3AED',name:'흑야 패밀리',tag:'조직'},gang:{p:'#DC2626',name:'레드 크루',tag:'갱단'}};
 
 let isCI = false, curTheme = 'light';
 
 document.addEventListener('DOMContentLoaded', () => {
-  renderUserInfo();
-  renderNav();
-  applyPermUI();
   startClock();
-  renderRkBoard(); renderAttendance(); renderRp(); renderTr(); renderMembers(); renderRanks(); renderWarnings(); renderTx(); renderNotices();
   document.querySelectorAll('.ni[data-p]').forEach(el => el.addEventListener('click', () => nav_to(el.dataset.p, el)));
 });
 
@@ -1235,7 +1232,18 @@ function renderRp() {
     tb.appendChild(tr);
   });
 }
-function approveRp(btn,id){btn.closest('tr').querySelector('.bbw').outerHTML='<span class="badge bbs">승인</span>';btn.remove();toast(`RP #${id} 승인 완료!`,'success');const b=document.getElementById('rpBadge');const n=parseInt(b.textContent)-1;if(n<=0)b.style.display='none';else b.textContent=n;}
+async function approveRp(btn,id){
+  if(!ME.factionId) return;
+  try {
+    await updateDoc(doc(db,'factions',ME.factionId,'reports_rp',id),{ status:'approved' });
+    btn.closest('tr').querySelector('.bbw').outerHTML='<span class="badge bbs">승인</span>';
+    btn.remove();
+    toast('RP 보고서 승인 완료!','success');
+    const b=document.getElementById('rpBadge');
+    const n=parseInt(b.textContent||'0')-1;
+    if(n<=0)b.style.display='none';else b.textContent=n;
+  } catch(err){ toast('승인 실패: '+err.message,'error'); }
+}
 
 function renderTr() {
   const tb = document.getElementById('trBody');
@@ -1593,25 +1601,98 @@ function cm(id){document.getElementById(id).classList.remove('open');}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.mo.open').forEach(m=>m.classList.remove('open'));closeCz();}});
 document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
 
-function submitRp(){if(!document.getElementById('rpCont').value){toast('내용을 입력해주세요.','error');return;}cm('moRp');toast('RP 보고서 제출 완료!','success');}
-function submitTr(){if(!document.getElementById('trPeer').value){toast('거래 상대방을 입력해주세요.','error');return;}cm('moTr');toast('거래 보고서 제출 완료!','success');}
-function submitNt(){
-  const t=document.getElementById('ntTitle').value;
+async function submitRp(){
+  const cont = document.getElementById('rpCont')?.value?.trim();
+  const type = document.querySelector('#moRp select')?.value || 'RP';
+  if(!cont){toast('내용을 입력해주세요.','error');return;}
+  if(!ME.factionId){toast('팩션 정보 없음','error');return;}
+  try {
+    await addDoc(collection(db,'factions',ME.factionId,'reports_rp'),{
+      authorId:   ME.uid,
+      authorName: ME.name,
+      rpType:     type,
+      content:    cont,
+      status:     'pending',
+      createdAt:  serverTimestamp(),
+    });
+    cm('moRp');
+    toast('RP 보고서 제출 완료!','success');
+    await loadIntranetData();
+  } catch(err){ toast('제출 실패: '+err.message,'error'); }
+}
+async function submitTr(){
+  const peer   = document.getElementById('trPeer')?.value?.trim();
+  const type   = document.querySelector('#moTr select')?.value || '거래';
+  const amount = parseInt(document.querySelector('#moTr input[type=number]')?.value) || 0;
+  const item   = document.querySelectorAll('#moTr input')[1]?.value?.trim() || '-';
+  if(!peer){toast('거래 상대방을 입력해주세요.','error');return;}
+  if(!ME.factionId){toast('팩션 정보 없음','error');return;}
+  try {
+    await addDoc(collection(db,'factions',ME.factionId,'reports_trade'),{
+      authorId:   ME.uid,
+      authorName: ME.name,
+      tradeType:  type,
+      peer, amount, item,
+      status:    'pending',
+      createdAt: serverTimestamp(),
+    });
+    cm('moTr');
+    toast('거래 보고서 제출 완료!','success');
+    await loadIntranetData();
+  } catch(err){ toast('제출 실패: '+err.message,'error'); }
+}
+async function submitNt(){
+  const t    = document.getElementById('ntTitle')?.value?.trim();
+  const cont = document.getElementById('ntCont')?.value?.trim();
+  const type = document.getElementById('ntType')?.value || '공지';
   if(!t){toast('제목을 입력해주세요.','error');return;}
-  cm('moNt');
+  if(!ME.factionId){toast('팩션 정보 없음','error');return;}
   const tm={공지:'notice',긴급:'urgent',이벤트:'event'};
-  NOTICES.unshift({type:tm[document.getElementById('ntType').value]||'notice',title:t,author:`${ME.rankName} ${ME.name}`,date:'방금',unread:false});
-  document.getElementById('ntList').innerHTML='';
-  renderNotices();
-  toast('공지가 등록되었습니다!','success');
+  try {
+    await addDoc(collection(db,'factions',ME.factionId,'notices'),{
+      type:       tm[type]||'notice',
+      title:      t,
+      content:    cont || '',
+      authorId:   ME.uid,
+      authorName: `${ME.rankName} ${ME.name}`,
+      createdAt:  serverTimestamp(),
+    });
+    cm('moNt');
+    toast('공지가 등록되었습니다!','success');
+    await loadIntranetData();
+  } catch(err){ toast('제출 실패: '+err.message,'error'); }
 }
 
 // ── 클록/출근 ──
 function startClock(){setInterval(()=>{document.getElementById('clk').textContent=new Date().toLocaleTimeString('ko-KR',{hour12:false});},1000);}
-function toggleCI(){
-  const btn=document.getElementById('ciBtn'),st=document.getElementById('ciS'),now=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-  if(!isCI){isCI=true;btn.textContent='퇴근하기';btn.classList.add('out');st.textContent=now+' 출근 ●';st.style.color='var(--success)';toast(`출근 완료! (${now})`,'success');}
-  else{isCI=false;btn.textContent='출근하기';btn.classList.remove('out');st.textContent='퇴근 완료';st.style.color='';toast('퇴근 완료. 수고하셨습니다! 🎉','success');}
+async function toggleCI(){
+  const btn=document.getElementById('ciBtn'),st=document.getElementById('ciS');
+  const now=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  const today=new Date().toISOString().split('T')[0];
+  if(!isCI){
+    isCI=true;btn.textContent='퇴근하기';btn.classList.add('out');
+    st.textContent=now+' 출근 ●';st.style.color='var(--success)';
+    toast(`출근 완료! (${now})`,'success');
+    if(ME.factionId && ME.uid) {
+      try {
+        await setDoc(doc(db,'factions',ME.factionId,'attendance',`${ME.uid}_${today}`),{
+          userId: ME.uid, username: ME.name,
+          checkIn: serverTimestamp(), date: today, status: 'O',
+        },{ merge:true });
+      } catch(e){ console.warn('[출근기록]',e); }
+    }
+  } else {
+    isCI=false;btn.textContent='출근하기';btn.classList.remove('out');
+    st.textContent='퇴근 완료';st.style.color='';
+    toast('퇴근 완료. 수고하셨습니다! 🎉','success');
+    if(ME.factionId && ME.uid) {
+      try {
+        await updateDoc(doc(db,'factions',ME.factionId,'attendance',`${ME.uid}_${today}`),{
+          checkOut: serverTimestamp(),
+        });
+      } catch(e){ console.warn('[퇴근기록]',e); }
+    }
+  }
 }
 
 // ── 화면 전환 ──
@@ -1763,6 +1844,152 @@ function loadIntranet(factionData, memberData, userData) {
 
   showScreen('screen-app');
   toast(`환영합니다, ${ME.name}님! 👋`, 'success');
+
+  // Firestore에서 실제 데이터 로드
+  await loadIntranetData();
+}
+
+// ── Firestore 실제 데이터 로드 ──────────────────────────
+async function loadIntranetData() {
+  if (!ME.factionId) return;
+  const fid = ME.factionId;
+
+  try {
+    // 팩션원 목록
+    const membersSnap = await getDocs(collection(db, 'factions', fid, 'members'));
+    MEMBERS = membersSnap.docs
+      .filter(d => d.data().status !== 'pending')
+      .map(d => ({
+        id:    d.id,
+        name:  d.data().username || '알 수 없음',
+        rank:  d.data().rankName || '직급 없음',
+        cls:   d.data().rankClass || '일반직',
+        rp:    d.data().rp_score || 0,
+        trade: d.data().trade_count || 0,
+        warn:  d.data().warn_count || 0,
+        avatar:d.data().avatar || '',
+        isFounder: d.data().isFounder || false,
+      }));
+
+    // 직급 목록
+    const ranksSnap = await getDocs(query(collection(db, 'factions', fid, 'ranks'), orderBy('order', 'asc')));
+    RANKS_DATA = ranksSnap.docs.map((d, i) => ({
+      id:    d.id,
+      n:     i + 1,
+      name:  d.data().name,
+      cls:   d.data().rankClass || '일반직',
+      perms: d.data().perms || [],
+    }));
+
+    // 공지사항
+    const noticeSnap = await getDocs(query(collection(db, 'factions', fid, 'notices'), orderBy('createdAt', 'desc'), where('createdAt', '!=', null)));
+    NOTICES = noticeSnap.docs.map(d => ({
+      id:     d.id,
+      type:   d.data().type || 'notice',
+      title:  d.data().title,
+      author: d.data().authorName || '알 수 없음',
+      date:   d.data().createdAt?.toDate?.()?.toLocaleDateString('ko-KR') || '',
+      unread: false,
+    }));
+
+    // RP 보고서
+    const rpSnap = await getDocs(query(collection(db, 'factions', fid, 'reports_rp'), orderBy('createdAt', 'desc')));
+    RP_D = rpSnap.docs.map(d => ({
+      id:      d.id,
+      author:  d.data().authorName || '알 수 없음',
+      type:    d.data().rpType || 'RP',
+      content: d.data().content || '',
+      time:    timeAgo(d.data().createdAt?.toDate?.()?.getTime() || Date.now()),
+      status:  d.data().status || 'pending',
+    }));
+
+    // 거래 보고서
+    const trSnap = await getDocs(query(collection(db, 'factions', fid, 'reports_trade'), orderBy('createdAt', 'desc')));
+    TR_D = trSnap.docs.map(d => ({
+      id:     d.id,
+      author: d.data().authorName || '알 수 없음',
+      type:   d.data().tradeType || '거래',
+      peer:   d.data().peer || '',
+      amount: d.data().amount || 0,
+      item:   d.data().item || '-',
+      time:   timeAgo(d.data().createdAt?.toDate?.()?.getTime() || Date.now()),
+      status: d.data().status || 'pending',
+    }));
+
+    // 거래 내역 (금고)
+    const txSnap = await getDocs(query(collection(db, 'factions', fid, 'transactions'), orderBy('createdAt', 'desc')));
+    TX_D = txSnap.docs.map(d => ({
+      type: d.data().type || 'in',
+      ic:   d.data().type === 'in' ? '💰' : '💸',
+      t:    d.data().description || '거래',
+      d:    d.data().createdAt?.toDate?.()?.toLocaleDateString('ko-KR') || '',
+      a:    (d.data().type === 'in' ? '+' : '-') + '$' + (d.data().amount || 0).toLocaleString(),
+    }));
+
+    // 가입 신청 (pending 멤버)
+    APPLY_DATA.length = 0;
+    membersSnap.docs
+      .filter(d => d.data().status === 'pending')
+      .forEach(d => {
+        APPLY_DATA.push({
+          id:     d.id,
+          name:   d.data().username || '알 수 없음',
+          avatar: d.data().username?.[0] || '?',
+          rank:   '신청자',
+          discord:d.data().discordName || '',
+          msg:    d.data().bio || '',
+          date:   d.data().joinedAt?.toDate?.()?.toLocaleDateString('ko-KR') || '',
+        });
+      });
+
+    // 렌더
+    renderUserInfo();
+    renderNav();
+    applyPermUI();
+    renderRkBoard();
+    renderAttendance();
+    renderRp();
+    renderTr();
+    renderMembers();
+    renderRanks();
+    renderWarnings();
+    renderTx();
+    renderNotices();
+    updateMemberBadges();
+
+  } catch(err) {
+    console.error('[loadIntranetData]', err);
+    // 에러 나도 UI는 보여줌
+    renderUserInfo();
+    renderNav();
+    applyPermUI();
+    renderRkBoard();
+    renderAttendance();
+    renderRp();
+    renderTr();
+    renderMembers();
+    renderRanks();
+    renderWarnings();
+    renderTx();
+    renderNotices();
+  }
+}
+
+function updateMemberBadges() {
+  const applyBadge = document.getElementById('applyBadge');
+  if (applyBadge) {
+    applyBadge.textContent = APPLY_DATA.length;
+    applyBadge.style.display = APPLY_DATA.length > 0 ? '' : 'none';
+  }
+}
+
+function timeAgo(ts) {
+  if (!ts) return '알 수 없음';
+  const diff = Date.now() - ts;
+  if (diff < 60000)    return '방금 전';
+  if (diff < 3600000)  return Math.floor(diff/60000) + '분 전';
+  if (diff < 86400000) return Math.floor(diff/3600000) + '시간 전';
+  return Math.floor(diff/86400000) + '일 전';
 }
 
 // ─── 5. 가입 화면 ────────────────────────────
@@ -2155,6 +2382,7 @@ window.closeSb              = closeSb;
 window.toggleTheme          = toggleTheme;
 window.setMode              = setMode;
 window.startLogin           = startLogin;
+window.loadIntranetData     = loadIntranetData;
 window.openOB               = openOB;
 window.goApp                = goApp;
 window.logout               = logout;
