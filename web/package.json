@@ -1,0 +1,12 @@
+{
+  "name": "turncity-web",
+  "version": "1.0.0",
+  "description": "Turn City 인트라넷 웹 UI",
+  "scripts": {
+    "dev": "npx serve public -p 5173",
+    "build": "echo 'Static HTML - no build required'"
+  },
+  "devDependencies": {
+    "serve": "^14.2.0"
+  }
+}
