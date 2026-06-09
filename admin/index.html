@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Turn City | 관리자 패널</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<style>
+:root{--p:#E8B84B;--pd:#c9952e;--pbg:rgba(232,184,75,.1);--pbd:rgba(232,184,75,.25);--danger:#EF4444;--success:#22C55E;--warning:#F59E0B;--info:#3B82F6;--r:8px;--rl:12px;--font:'Noto Sans KR',sans-serif;--mono:'JetBrains Mono',monospace;}
+[data-theme="dark"]{--bg:#0A0A0C;--bg2:#111114;--bg3:#18181C;--bg4:#1E1E24;--bg5:#26262E;--bd:rgba(255,255,255,.07);--bd2:rgba(255,255,255,.12);--tx:#F0F0F5;--tx2:#8888A0;--tx3:#44445A;--sh:0 4px 24px rgba(0,0,0,.5);}
+[data-theme="light"]{--bg:#F0F4F9;--bg2:#fff;--bg3:#F8FAFC;--bg4:#EEF2F7;--bg5:#E2E8F0;--bd:#E2E8F0;--bd2:#CBD5E1;--tx:#0F172A;--tx2:#475569;--tx3:#94A3B8;--sh:0 4px 24px rgba(0,0,0,.08);}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--tx);min-height:100vh;-webkit-font-smoothing:antialiased;}
+button{cursor:pointer;font-family:var(--font);border:none;background:none;}
+input,textarea,select{font-family:var(--font);}
+.screen{display:none;}.screen.active{display:flex;}
+
+/* ── LOGIN ── */
+#s-login{min-height:100vh;align-items:center;justify-content:center;background:var(--bg);position:relative;overflow:hidden;}
+#s-login::before{content:'';position:absolute;width:700px;height:700px;background:radial-gradient(circle,rgba(232,184,75,.06) 0%,transparent 65%);top:-200px;left:50%;transform:translateX(-50%);}
+.login-card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rl);padding:44px 40px;width:400px;max-width:95vw;box-shadow:var(--sh);position:relative;z-index:1;}
+.lc-logo{text-align:center;margin-bottom:32px;}
+.lc-icon{width:52px;height:52px;background:var(--p);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;color:#000;margin:0 auto 12px;}
+.lc-title{font-size:20px;font-weight:800;}
+.lc-sub{font-size:12px;color:var(--tx2);margin-top:4px;}
+.lc-warn{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--danger);margin-bottom:20px;display:flex;align-items:center;gap:8px;}
+.fi{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.fi label{font-size:12px;font-weight:600;color:var(--tx2);}
+.inp{width:100%;background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--r);padding:11px 13px;font-size:14px;color:var(--tx);outline:none;transition:.15s ease;}
+.inp:focus{border-color:var(--p);background:var(--bg2);box-shadow:0 0 0 3px var(--pbg);}
+.pw-wrap{position:relative;}
+.pw-wrap .inp{padding-right:42px;}
+.pw-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--tx3);cursor:pointer;font-size:16px;user-select:none;}
+.btn-login{width:100%;padding:12px;background:var(--p);color:#000;border-radius:var(--r);font-size:14px;font-weight:700;transition:.15s;margin-top:6px;border:none;}
+.btn-login:hover{background:var(--pd);}
+.login-attempts{font-size:11px;color:var(--tx3);text-align:center;margin-top:10px;}
+
+/* ── APP LAYOUT ── */
+#s-app{flex-direction:row;min-height:100vh;}
+.sidebar{width:240px;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;}
+.sb-head{padding:20px 18px;border-bottom:1px solid var(--bd);}
+.sb-logo-row{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+.sb-logo{width:32px;height:32px;background:var(--p);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;color:#000;}
+.sb-title{font-size:15px;font-weight:800;}
+.sb-badge{font-size:10px;background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.25);border-radius:4px;padding:1px 7px;font-weight:700;display:inline-block;margin-top:2px;}
+.sb-nav{flex:1;overflow-y:auto;padding:10px 8px;scrollbar-width:none;}
+.sb-nav::-webkit-scrollbar{display:none;}
+.nsec{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.8px;padding:10px 8px 4px;}
+.ni{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:var(--r);font-size:13px;font-weight:500;color:var(--tx2);cursor:pointer;transition:.15s;margin-bottom:1px;position:relative;}
+.ni:hover{background:var(--bg3);color:var(--tx);}
+.ni.on{background:var(--pbg);color:var(--p);font-weight:600;}
+.ni.on::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:55%;background:var(--p);border-radius:0 3px 3px 0;}
+.ni-ic{font-size:15px;width:20px;text-align:center;}
+.ni-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;}
+.sb-foot{padding:10px 8px;border-top:1px solid var(--bd);}
+.main{margin-left:240px;flex:1;min-height:100vh;display:flex;flex-direction:column;}
+.topbar{height:56px;background:var(--bg2);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 24px;gap:12px;position:sticky;top:0;z-index:50;}
+.tb-title{font-size:15px;font-weight:700;flex:1;}
+.tb-right{display:flex;align-items:center;gap:8px;}
+.ib{width:32px;height:32px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;color:var(--tx2);font-size:14px;cursor:pointer;transition:.15s;}
+.ib:hover{background:var(--bg3);color:var(--tx);}
+.content{flex:1;padding:24px;}
+.page{display:none;}.page.active{display:block;}
+
+/* ── 공통 ── */
+.card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rl);padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.12);}
+.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.ct{font-size:14px;font-weight:700;display:flex;align-items:center;gap:7px;}
+.ct .ti{color:var(--p);}
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.sc{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rl);padding:16px 18px;}
+.sl{font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:10px;}
+.sv{font-size:28px;font-weight:900;font-family:var(--mono);line-height:1;margin-bottom:4px;}
+.ss{font-size:11px;color:var(--tx3);}
+.sc.cp .sv{color:var(--p);}.sc.cs .sv{color:var(--success);}.sc.cd .sv{color:var(--danger);}.sc.ci .sv{color:var(--info);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:600;transition:.15s;cursor:pointer;border:none;}
+.btn.p{background:var(--p);color:#000;}.btn.p:hover{background:var(--pd);}
+.btn.g{background:var(--bg3);border:1.5px solid var(--bd);color:var(--tx2);}.btn.g:hover{border-color:var(--p);color:var(--p);}
+.btn.d{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:var(--danger);}.btn.d:hover{background:rgba(239,68,68,.15);}
+.btn.s{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);color:var(--success);}
+.btn.sm{padding:5px 11px;font-size:12px;}
+.tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.tbl th{background:var(--bg3);padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.4px;border-bottom:1.5px solid var(--bd);}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--bd);vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tbody tr:hover td{background:var(--bg3);}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:600;}
+.badge.p{background:var(--pbg);color:var(--p);border:1px solid var(--pbd);}
+.badge.s{background:rgba(34,197,94,.1);color:var(--success);border:1px solid rgba(34,197,94,.2);}
+.badge.d{background:rgba(239,68,68,.1);color:var(--danger);border:1px solid rgba(239,68,68,.2);}
+.badge.g{background:var(--bg4);color:var(--tx2);border:1px solid var(--bd);}
+.badge.i{background:rgba(59,130,246,.1);color:var(--info);border:1px solid rgba(59,130,246,.2);}
+.sr{display:flex;align-items:center;gap:16px;padding:13px 0;border-bottom:1px solid var(--bd);}
+.sr:last-child{border-bottom:none;}
+.si{flex:1;}.si .sl2{font-size:13px;font-weight:600;}.si .sd{font-size:12px;color:var(--tx2);margin-top:2px;}
+.toggle{width:38px;height:20px;background:var(--bg5);border-radius:10px;position:relative;cursor:pointer;transition:.25s;flex-shrink:0;border:1px solid var(--bd);}
+.toggle.on{background:var(--p);border-color:var(--p);}
+.toggle::after{content:'';position:absolute;width:14px;height:14px;background:#fff;border-radius:50%;top:2px;left:2px;transition:.25s;}
+.toggle.on::after{left:20px;}
+
+/* ── 팩션 카드 ── */
+.faction-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--rl);padding:18px;margin-bottom:10px;transition:.15s;}
+.faction-card:hover{border-color:var(--pbd);}
+.fc-head{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.fc-color{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;color:#fff;flex-shrink:0;}
+.fc-info{flex:1;}
+.fc-name{font-size:15px;font-weight:700;}
+.fc-meta{font-size:12px;color:var(--tx2);}
+.fc-stats{display:flex;gap:16px;margin-bottom:14px;}
+.fc-stat{text-align:center;}
+.fc-stat .v{font-size:18px;font-weight:700;font-family:var(--mono);}
+.fc-stat .l{font-size:10px;color:var(--tx3);}
+.fc-actions{display:flex;gap:6px;flex-wrap:wrap;}
+
+/* ── 웹훅 설정 ── */
+.webhook-section{margin-bottom:16px;padding:16px;background:var(--bg4);border-radius:var(--r);border:1px solid var(--bd);}
+.wh-title{font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.wh-row{display:flex;gap:8px;align-items:center;}
+.wh-input{flex:1;background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--r);padding:9px 12px;font-size:12px;color:var(--tx);outline:none;transition:.15s;font-family:var(--mono);}
+.wh-input:focus{border-color:var(--p);}
+.wh-status{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.wh-status.ok{background:var(--success);}
+.wh-status.err{background:var(--danger);}
+.wh-status.none{background:var(--tx3);}
+
+/* ── 모달 ── */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;}
+.mo.open{display:flex;}
+.md{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rl);padding:28px;width:500px;max-width:100%;box-shadow:var(--sh);animation:mIn .2s ease;max-height:90vh;overflow-y:auto;}
+@keyframes mIn{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+.mh h2{font-size:17px;font-weight:700;margin-bottom:4px;}
+.mh p{font-size:13px;color:var(--tx2);margin-bottom:20px;}
+.mf{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;}
+
+/* ── 활동 로그 ── */
+.log-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd);}
+.log-item:last-child{border-bottom:none;}
+.log-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+.log-dot.p{background:var(--p);}.log-dot.s{background:var(--success);}.log-dot.d{background:var(--danger);}.log-dot.i{background:var(--info);}
+.log-text{font-size:13px;flex:1;}
+.log-time{font-size:11px;color:var(--tx3);font-family:var(--mono);flex-shrink:0;}
+
+/* ── 비밀번호 변경 ── */
+.pw-strength{height:4px;border-radius:2px;margin-top:6px;transition:.3s;background:var(--bg5);}
+.pw-strength.weak{background:var(--danger);width:33%;}
+.pw-strength.medium{background:var(--warning);width:66%;}
+.pw-strength.strong{background:var(--success);width:100%;}
+
+/* TOAST */
+.tw{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:11px 14px;min-width:250px;box-shadow:var(--sh);display:flex;align-items:center;gap:9px;font-size:13px;animation:tIn .2s ease;}
+.toast.success{border-left:3px solid var(--success);}
+.toast.error{border-left:3px solid var(--danger);}
+.toast.info{border-left:3px solid var(--info);}
+.toast.warn{border-left:3px solid var(--warning);}
+@keyframes tIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes tOut{from{opacity:1}to{transform:translateX(110%);opacity:0}}
+
+@media(max-width:768px){.sidebar{display:none;}.main{margin-left:0;}.sg{grid-template-columns:1fr 1fr;}.g2,.g3{grid-template-columns:1fr;}}
+::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:3px;}
+</style>
+</head>
+<body>
+<div class="tw" id="tw"></div>
+
+<!-- ── 웹훅 테스트 모달 ── -->
+<div class="mo" id="moWhTest">
+<div class="md">
+  <div class="mh"><h2>🔔 웹훅 테스트</h2><p id="moWhTestSub">선택한 웹훅으로 테스트 메시지를 전송합니다.</p></div>
+  <div style="background:var(--bg3);border-radius:var(--r);padding:12px;font-size:12px;color:var(--tx2);font-family:var(--mono);word-break:break-all;" id="moWhUrl"></div>
+  <div class="mf">
+    <button class="btn g sm" onclick="cm('moWhTest')">취소</button>
+    <button class="btn p sm" onclick="sendWhTest()">테스트 전송</button>
+  </div>
+</div>
+</div>
+
+<!-- ── 팩션 코드 발급 모달 ── -->
+<div class="mo" id="moIssueCode">
+<div class="md">
+  <div class="mh"><h2>🔑 인트라넷 코드 발급</h2><p>신규 팩션에 인트라넷 생성 코드를 발급합니다.</p></div>
+  <div style="display:flex;flex-direction:column;gap:12px;">
+    <div class="fi"><label>Discord 유저 ID</label><input class="inp" id="icUserId" placeholder="Discord 유저 ID (숫자)"></div>
+    <div class="fi"><label>팩션명</label><input class="inp" id="icFactionName" placeholder="예: TURN CITY PD"></div>
+    <div class="fi"><label>팩션 유형</label>
+      <select class="inp" id="icFactionType">
+        <option>경찰 / 공무원</option><option>EMS / 소방</option><option>기업 / 회사</option><option>조직 / 마피아</option><option>갱단 / 범죄조직</option><option>기타</option>
+      </select>
+    </div>
+    <div class="fi"><label>팩션장 직급명</label><input class="inp" id="icFounderRank" placeholder="예: 총경, 보스, 회장..."></div>
+  </div>
+  <div class="mf">
+    <button class="btn g sm" onclick="cm('moIssueCode')">취소</button>
+    <button class="btn p sm" onclick="issueCode()">코드 발급 →</button>
+  </div>
+</div>
+</div>
+
+<!-- ── 팩션 상세 / 웹훅 설정 모달 ── -->
+<div class="mo" id="moFactionDetail">
+<div class="md" style="width:580px;">
+  <div class="mh"><h2 id="fdTitle">팩션 설정</h2><p id="fdSub">팩션 정보 및 Discord 웹훅을 관리합니다.</p></div>
+
+  <div style="margin-bottom:20px;">
+    <div style="font-size:12px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">Discord 웹훅 설정</div>
+
+    <div class="webhook-section">
+      <div class="wh-title">📋 RP 보고서 알림</div>
+      <div class="wh-row">
+        <div class="wh-status none" id="wh-rp-status"></div>
+        <input class="wh-input" id="wh-rp" placeholder="https://discord.com/api/webhooks/...">
+        <button class="btn g sm" onclick="testWh('rp')">테스트</button>
+      </div>
+    </div>
+
+    <div class="webhook-section">
+      <div class="wh-title">💰 거래 보고서 알림</div>
+      <div class="wh-row">
+        <div class="wh-status none" id="wh-trade-status"></div>
+        <input class="wh-input" id="wh-trade" placeholder="https://discord.com/api/webhooks/...">
+        <button class="btn g sm" onclick="testWh('trade')">테스트</button>
+      </div>
+    </div>
+
+    <div class="webhook-section">
+      <div class="wh-title">⚠️ 내부경고 알림</div>
+      <div class="wh-row">
+        <div class="wh-status none" id="wh-warn-status"></div>
+        <input class="wh-input" id="wh-warn" placeholder="https://discord.com/api/webhooks/...">
+        <button class="btn g sm" onclick="testWh('warn')">테스트</button>
+      </div>
+    </div>
+
+    <div class="webhook-section">
+      <div class="wh-title">📢 공지사항 알림</div>
+      <div class="wh-row">
+        <div class="wh-status none" id="wh-notice-status"></div>
+        <input class="wh-input" id="wh-notice" placeholder="https://discord.com/api/webhooks/...">
+        <button class="btn g sm" onclick="testWh('notice')">테스트</button>
+      </div>
+    </div>
+
+    <div class="webhook-section">
+      <div class="wh-title">👥 팩션원 입/퇴단 알림</div>
+      <div class="wh-row">
+        <div class="wh-status none" id="wh-member-status"></div>
+        <input class="wh-input" id="wh-member" placeholder="https://discord.com/api/webhooks/...">
+        <button class="btn g sm" onclick="testWh('member')">테스트</button>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:16px;">
+    <div style="font-size:12px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">팩션 상태</div>
+    <div class="sr"><div class="si"><div class="sl2">인트라넷 활성화</div><div class="sd">비활성화 시 팩션원 접속 차단</div></div><div class="toggle on" id="fdActive" onclick="this.classList.toggle('on')"></div></div>
+    <div class="sr"><div class="si"><div class="sl2">팩션 잠금</div><div class="sd">신규 가입 신청 차단</div></div><div class="toggle" id="fdLock" onclick="this.classList.toggle('on')"></div></div>
+  </div>
+
+  <div class="mf">
+    <button class="btn d sm" onclick="deleteFaction()">팩션 삭제</button>
+    <div style="flex:1;"></div>
+    <button class="btn g sm" onclick="cm('moFactionDetail')">취소</button>
+    <button class="btn p sm" onclick="saveFactionDetail()">저장하기</button>
+  </div>
+</div>
+</div>
+
+<!-- ── 비밀번호 변경 모달 ── -->
+<div class="mo" id="moPwChange">
+<div class="md" style="width:400px;">
+  <div class="mh"><h2>🔐 비밀번호 변경</h2><p>관리자 패널 비밀번호를 변경합니다.</p></div>
+  <div style="display:flex;flex-direction:column;gap:12px;">
+    <div class="fi"><label>현재 비밀번호</label><div class="pw-wrap"><input class="inp" type="password" id="pwCur" placeholder="현재 비밀번호"><span class="pw-eye" onclick="togglePw('pwCur')">👁</span></div></div>
+    <div class="fi"><label>새 비밀번호</label><div class="pw-wrap"><input class="inp" type="password" id="pwNew" placeholder="새 비밀번호" oninput="checkPwStrength(this.value)"><span class="pw-eye" onclick="togglePw('pwNew')">👁</span></div><div class="pw-strength" id="pwStrength"></div><div style="font-size:11px;color:var(--tx3);margin-top:3px;" id="pwStrengthTxt"></div></div>
+    <div class="fi"><label>새 비밀번호 확인</label><div class="pw-wrap"><input class="inp" type="password" id="pwConfirm" placeholder="새 비밀번호 확인"><span class="pw-eye" onclick="togglePw('pwConfirm')">👁</span></div></div>
+  </div>
+  <div class="mf">
+    <button class="btn g sm" onclick="cm('moPwChange')">취소</button>
+    <button class="btn p sm" onclick="changePw()">변경하기</button>
+  </div>
+</div>
+</div>
+
+<!-- ════ LOGIN ════ -->
+<div id="s-login" class="screen active">
+  <div class="login-card">
+    <div class="lc-logo">
+      <div class="lc-icon">TC</div>
+      <div class="lc-title">Turn City 관리자</div>
+      <div class="lc-sub">Admin Panel · 관리자 전용</div>
+    </div>
+    <div class="lc-warn" id="loginWarn" style="display:none;">
+      ⚠️ <span id="loginWarnMsg">비밀번호가 틀렸습니다.</span>
+    </div>
+    <div class="fi">
+      <label>비밀번호</label>
+      <div class="pw-wrap">
+        <input class="inp" type="password" id="adminPw" placeholder="관리자 비밀번호" onkeydown="if(event.key==='Enter')doLogin()">
+        <span class="pw-eye" onclick="togglePw('adminPw')">👁</span>
+      </div>
+    </div>
+    <button class="btn-login" onclick="doLogin()">관리자 패널 접속 →</button>
+    <div class="login-attempts" id="loginAttempts"></div>
+  </div>
+</div>
+
+<!-- ════ APP ════ -->
+<div id="s-app" class="screen">
+  <aside class="sidebar">
+    <div class="sb-head">
+      <div class="sb-logo-row">
+        <div class="sb-logo">TC</div>
+        <div class="sb-title">관리자 패널</div>
+      </div>
+      <div class="sb-badge">ADMIN ONLY</div>
+    </div>
+    <nav class="sb-nav">
+      <div class="nsec">대시보드</div>
+      <div class="ni on" data-p="overview"><span class="ni-ic">📊</span>전체 현황</div>
+
+      <div class="nsec">팩션 관리</div>
+      <div class="ni" data-p="factions"><span class="ni-ic">🏙️</span>팩션 목록<span class="ni-badge" id="factionCount">0</span></div>
+      <div class="ni" data-p="codes"><span class="ni-ic">🔑</span>인트라넷 코드<span class="ni-badge" id="activeCodeCount">0</span></div>
+      <div class="ni" data-p="webhooks"><span class="ni-ic">🔔</span>웹훅 일괄 관리</div>
+
+      <div class="nsec">시스템</div>
+      <div class="ni" data-p="logs"><span class="ni-ic">📋</span>전체 활동 로그</div>
+      <div class="ni" data-p="settings"><span class="ni-ic">⚙️</span>시스템 설정</div>
+    </nav>
+    <div class="sb-foot">
+      <div class="ni" onclick="om('moPwChange')"><span class="ni-ic">🔐</span>비밀번호 변경</div>
+      <div class="ni" onclick="adminLogout()"><span class="ni-ic">🚪</span>로그아웃</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="tb-title" id="tbt">전체 현황</div>
+      <div class="tb-right">
+        <div style="font-size:12px;color:var(--tx2);">마지막 로그인: <span id="lastLogin" style="font-family:var(--mono);">--</span></div>
+        <div class="ib" onclick="refreshAll()" title="새로고침">🔄</div>
+      </div>
+    </header>
+    <div class="content">
+
+      <!-- 전체 현황 -->
+      <div class="page active" id="page-overview">
+        <div class="sg">
+          <div class="sc cp"><div class="sl">🏙️ 등록 팩션</div><div class="sv" id="ov-factions">0</div><div class="ss">활성 팩션 수</div></div>
+          <div class="sc cs"><div class="sl">👥 전체 팩션원</div><div class="sv" id="ov-members">0</div><div class="ss">전체 서버</div></div>
+          <div class="sc ci"><div class="sl">🔑 활성 코드</div><div class="sv" id="ov-codes">0</div><div class="ss">미사용 발급 코드</div></div>
+          <div class="sc cd"><div class="sl">⚠️ 오늘 경고</div><div class="sv" id="ov-warns">0</div><div class="ss">오늘 부여된 경고</div></div>
+        </div>
+
+        <div class="g2">
+          <div class="card">
+            <div class="ch"><div class="ct"><span class="ti">🏙️</span>최근 등록 팩션</div></div>
+            <table class="tbl">
+              <thead><tr><th>팩션명</th><th>유형</th><th>팩션원</th><th>등록일</th><th></th></tr></thead>
+              <tbody id="recentFactions"></tbody>
+            </table>
+          </div>
+          <div class="card">
+            <div class="ch"><div class="ct"><span class="ti">📋</span>최근 활동 로그</div></div>
+            <div id="recentLogs"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 팩션 목록 -->
+      <div class="page" id="page-factions">
+        <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;">
+          <input style="background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--r);padding:7px 12px;font-size:13px;color:var(--tx);outline:none;width:220px;" placeholder="팩션 검색..." id="factionSearch" oninput="filterFactions(this.value)">
+          <div style="flex:1;"></div>
+          <button class="btn p sm" onclick="om('moIssueCode')">+ 인트라넷 코드 발급</button>
+        </div>
+        <div id="factionList"></div>
+      </div>
+
+      <!-- 코드 관리 -->
+      <div class="page" id="page-codes">
+        <div class="card">
+          <div class="ch">
+            <div class="ct"><span class="ti">🔑</span>활성 인트라넷 코드</div>
+            <button class="btn p sm" onclick="om('moIssueCode')">+ 코드 발급</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="tbl">
+              <thead><tr><th>코드</th><th>대상 유저</th><th>팩션명</th><th>팩션장 직급</th><th>발급일</th><th>만료</th><th></th></tr></thead>
+              <tbody id="codeList"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 웹훅 일괄 관리 -->
+      <div class="page" id="page-webhooks">
+        <div class="card">
+          <div class="ch"><div class="ct"><span class="ti">🔔</span>전체 팩션 웹훅 현황</div></div>
+          <table class="tbl">
+            <thead><tr><th>팩션명</th><th>RP보고서</th><th>거래보고서</th><th>내부경고</th><th>공지</th><th>팩션원</th><th>관리</th></tr></thead>
+            <tbody id="whTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 활동 로그 -->
+      <div class="page" id="page-logs">
+        <div class="card">
+          <div class="ch">
+            <div class="ct"><span class="ti">📋</span>전체 활동 로그</div>
+            <div style="display:flex;gap:6px;">
+              <select style="background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:5px 10px;font-size:12px;color:var(--tx);outline:none;">
+                <option>전체 팩션</option>
+              </select>
+              <button class="btn g sm">내보내기</button>
+            </div>
+          </div>
+          <div id="allLogs"></div>
+        </div>
+      </div>
+
+      <!-- 시스템 설정 -->
+      <div class="page" id="page-settings">
+        <div class="g2">
+          <div>
+            <div class="card">
+              <div class="ct" style="margin-bottom:16px;"><span class="ti">🔧</span>시스템 설정</div>
+              <div class="sr"><div class="si"><div class="sl2">신규 팩션 등록 허용</div><div class="sd">OFF 시 코드 발급 및 인트라넷 생성 차단</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+              <div class="sr"><div class="si"><div class="sl2">점검 모드</div><div class="sd">ON 시 전체 인트라넷 접속 차단, 점검 화면 표시</div></div><div class="toggle" id="maintenanceToggle" onclick="toggleMaintenance(this)"></div></div>
+              <div class="sr"><div class="si"><div class="sl2">관리자 로그 보존 기간</div></div>
+                <select class="inp" style="width:120px;padding:7px 10px;">
+                  <option>30일</option><option>60일</option><option>90일</option><option>무제한</option>
+                </select>
+              </div>
+            </div>
+            <div class="card" style="margin-top:16px;">
+              <div class="ct" style="margin-bottom:16px;"><span class="ti">📊</span>시스템 정보</div>
+              <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd);">
+                  <span style="color:var(--tx2);">Firebase 프로젝트</span>
+                  <span style="font-family:var(--mono);color:var(--p);">turn-int</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd);">
+                  <span style="color:var(--tx2);">Firestore 리전</span>
+                  <span style="font-family:var(--mono);">asia-northeast3 (서울)</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:8px 0;">
+                  <span style="color:var(--tx2);">관리자 패널 버전</span>
+                  <span style="font-family:var(--mono);">v1.0.0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="ct" style="margin-bottom:16px;"><span class="ti">🔐</span>보안</div>
+              <div class="sr"><div class="si"><div class="sl2">비밀번호 변경</div><div class="sd">관리자 패널 접속 비밀번호</div></div><button class="btn g sm" onclick="om('moPwChange')">변경</button></div>
+              <div class="sr"><div class="si"><div class="sl2">로그인 시도 제한</div><div class="sd">5회 실패 시 30분 잠금</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+              <div class="sr"><div class="si"><div class="sl2">세션 유지 시간</div></div>
+                <select class="inp" style="width:120px;padding:7px 10px;">
+                  <option>1시간</option><option>4시간</option><option>24시간</option>
+                </select>
+              </div>
+            </div>
+            <div class="card" style="margin-top:16px;">
+              <div class="ct" style="margin-bottom:16px;"><span class="ti">🚨</span>위험 구역</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <button class="btn d" style="width:100%;justify-content:flex-start;" onclick="toast('전체 코드 초기화는 실제 Firebase 연동 후 사용 가능합니다.','warn')">🗑️ 만료된 코드 전체 삭제</button>
+                <button class="btn d" style="width:100%;justify-content:flex-start;" onclick="toast('점검 모드 활성화','warn')">🔧 전체 인트라넷 점검 모드</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script type="module">
+// ══════════════════════════════════════════════
+// 보안 상수
+// ══════════════════════════════════════════════
+// 실제 배포 시 이 해시값을 서버사이드에서 검증해야 함
+// 현재는 클라이언트 사이드 데모용
+let ADMIN_PW_HASH = null;
+function getAdminPwHash() { if(!ADMIN_PW_HASH) ADMIN_PW_HASH = CryptoJS.SHA256('turncity2026@').toString(); return ADMIN_PW_HASH; }
+const MAX_ATTEMPTS  = 5;
+const LOCK_MINUTES  = 30;
+
+let loginAttempts = parseInt(localStorage.getItem('tc_admin_attempts') || '0');
+let lockUntil     = parseInt(localStorage.getItem('tc_admin_lock') || '0');
+let currentFactionId = null;
+
+// ── API 서버 URL ─────────────────────────────────────
+const API_URL    = "https://your-server.railway.app"; // ← Railway 배포 후 교체
+const BOT_SECRET = ""; // 관리자 패널에서는 직접 API 호출 안 함 (서버 통해서)
+
+// ── 실시간 데이터 (API에서 로드) ─────────────────────
+let MOCK_FACTIONS = [];
+let MOCK_CODES    = [];
+let MOCK_LOGS     = [];
+
+// ── API 호출 헬퍼 ─────────────────────────────────────
+async function apiFetch(path, options = {}) {
+  const sessionToken = localStorage.getItem('tc_admin_token') || '';
+  try {
+    const res = await fetch(API_URL + path, {
+      ...options,
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-token': sessionToken,
+        ...(options.headers || {}),
+      },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error(`[Admin API] ${path}:`, err.message);
+    return null;
+  }
+}
+
+// ── 데이터 로드 ───────────────────────────────────────
+async function loadFactions() {
+  const data = await apiFetch('/api/admin/factions');
+  if (data?.ok) {
+    MOCK_FACTIONS = data.factions || [];
+  } else {
+    // API 미연결 시 빈 배열
+    MOCK_FACTIONS = [];
+  }
+}
+
+async function loadCodes() {
+  const data = await apiFetch('/api/admin/codes');
+  if (data?.ok) {
+    MOCK_CODES = (data.codes || []).map(c => ({
+      ...c,
+      expiresAt: c.expiresAt?._seconds ? c.expiresAt._seconds * 1000 : c.expiresAt,
+    }));
+  } else {
+    MOCK_CODES = [];
+  }
+}
+
+async function loadLogs() {
+  const data = await apiFetch('/api/admin/logs');
+  if (data?.ok) {
+    MOCK_LOGS = (data.logs || []).map(l => ({
+      dot: l.type === 'faction_created' ? 's' :
+           l.type === 'code_issued'     ? 'i' :
+           l.type === 'member_kicked'   ? 'd' : 'p',
+      text: l.message,
+      time: timeAgo(l.createdAt?._seconds ? l.createdAt._seconds * 1000 : Date.now()),
+    }));
+  } else {
+    MOCK_LOGS = [];
+  }
+}
+
+function timeAgo(ts) {
+  const diff = Date.now() - ts;
+  if (diff < 60000)    return '방금 전';
+  if (diff < 3600000)  return Math.floor(diff/60000) + '분 전';
+  if (diff < 86400000) return Math.floor(diff/3600000) + '시간 전';
+  return Math.floor(diff/86400000) + '일 전';
+}
+
+// ══════════════════════════════════════════════
+// 로그인
+// ══════════════════════════════════════════════
+function doLogin() {
+  const pw = document.getElementById('adminPw').value;
+  const now = Date.now();
+
+  // 잠금 체크
+  if (lockUntil > now) {
+    const remaining = Math.ceil((lockUntil - now) / 60000);
+    showWarn(`${remaining}분 후 다시 시도해주세요. (잠금 중)`);
+    return;
+  }
+
+  const hash = CryptoJS.SHA256(pw).toString();
+
+  if (hash === getStoredHash()) {
+    // 성공
+    loginAttempts = 0;
+    localStorage.setItem('tc_admin_attempts', '0');
+    localStorage.removeItem('tc_admin_lock');
+    localStorage.setItem('tc_admin_session', Date.now().toString());
+
+    document.getElementById('lastLogin').textContent =
+      new Date().toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' });
+
+    showScreen('s-app');
+    initApp();
+  } else {
+    // 실패
+    loginAttempts++;
+    localStorage.setItem('tc_admin_attempts', loginAttempts.toString());
+
+    if (loginAttempts >= MAX_ATTEMPTS) {
+      const lockTime = Date.now() + LOCK_MINUTES * 60 * 1000;
+      localStorage.setItem('tc_admin_lock', lockTime.toString());
+      showWarn(`비밀번호 ${MAX_ATTEMPTS}회 실패. ${LOCK_MINUTES}분간 잠금됩니다.`);
+    } else {
+      showWarn(`비밀번호가 틀렸습니다. (${loginAttempts}/${MAX_ATTEMPTS})`);
+    }
+    updateAttemptDisplay();
+    document.getElementById('adminPw').value = '';
+  }
+}
+
+function getStoredHash() {
+  // 저장된 해시 없으면 기본값(turncity2026@) 사용
+  return localStorage.getItem('tc_admin_pw_hash') || getAdminPwHash();
+}
+
+function showWarn(msg) {
+  const w = document.getElementById('loginWarn');
+  w.style.display = 'flex';
+  document.getElementById('loginWarnMsg').textContent = msg;
+}
+
+function updateAttemptDisplay() {
+  const el = document.getElementById('loginAttempts');
+  if (loginAttempts > 0) {
+    el.textContent = `로그인 시도: ${loginAttempts}/${MAX_ATTEMPTS}`;
+  }
+}
+
+function adminLogout() {
+  localStorage.removeItem('tc_admin_session');
+  showScreen('s-login');
+  document.getElementById('adminPw').value = '';
+  document.getElementById('loginWarn').style.display = 'none';
+}
+
+// 세션 자동 복원 (1시간)
+function checkSession() {
+  const sess = parseInt(localStorage.getItem('tc_admin_session') || '0');
+  if (sess && Date.now() - sess < 60 * 60 * 1000) {
+    showScreen('s-app');
+    initApp();
+  }
+}
+
+// ══════════════════════════════════════════════
+// 앱 초기화
+// ══════════════════════════════════════════════
+async function initApp() {
+  // 네비 이벤트 먼저
+  document.querySelectorAll('.ni[data-p]').forEach(el => {
+    el.addEventListener('click', () => navTo(el.dataset.p, el));
+  });
+
+  // 로딩 표시
+  document.getElementById('tbt').textContent = '데이터 로딩 중...';
+
+  // API에서 데이터 병렬 로드
+  await Promise.all([loadFactions(), loadCodes(), loadLogs()]);
+
+  document.getElementById('tbt').textContent = '전체 현황';
+
+  renderOverview();
+  renderFactions();
+  renderCodes();
+  renderWebhooks();
+  renderLogs();
+  updateCountBadges();
+}
+
+function updateCountBadges() {
+  document.getElementById('factionCount').textContent = MOCK_FACTIONS.length;
+  document.getElementById('activeCodeCount').textContent = MOCK_CODES.length;
+  document.getElementById('ov-factions').textContent = MOCK_FACTIONS.length;
+  document.getElementById('ov-members').textContent = MOCK_FACTIONS.reduce((a,f) => a + f.memberCount, 0);
+  document.getElementById('ov-codes').textContent = MOCK_CODES.length;
+  document.getElementById('ov-warns').textContent = 2;
+}
+
+// ══════════════════════════════════════════════
+// 렌더 함수들
+// ══════════════════════════════════════════════
+function renderOverview() {
+  // 최근 팩션
+  const tb = document.getElementById('recentFactions');
+  tb.innerHTML = '';
+  MOCK_FACTIONS.slice(0,3).forEach(f => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><div style="display:flex;align-items:center;gap:8px;"><div style="width:8px;height:8px;border-radius:50%;background:${f.color};flex-shrink:0;"></div><b>${f.name}</b></div></td>
+      <td>${f.type}</td>
+      <td style="font-family:var(--mono);">${f.memberCount}명</td>
+      <td style="font-size:12px;color:var(--tx3);">${f.createdAt}</td>
+      <td><button class="btn g sm" onclick="openFactionDetail('${f.id}')">설정</button></td>`;
+    tb.appendChild(tr);
+  });
+
+  // 최근 로그
+  const logs = document.getElementById('recentLogs');
+  logs.innerHTML = '';
+  MOCK_LOGS.forEach(l => {
+    const d = document.createElement('div');
+    d.className = 'log-item';
+    d.innerHTML = `<div class="log-dot ${l.dot}"></div><div class="log-text">${l.text}</div><div class="log-time">${l.time}</div>`;
+    logs.appendChild(d);
+  });
+}
+
+function renderFactions(filter='') {
+  const el = document.getElementById('factionList');
+  el.innerHTML = '';
+  const list = filter ? MOCK_FACTIONS.filter(f => f.name.toLowerCase().includes(filter.toLowerCase())) : MOCK_FACTIONS;
+  list.forEach(f => {
+    const d = document.createElement('div');
+    d.className = 'faction-card';
+    const whCount = Object.values(f.webhooks).filter(v => v).length;
+    d.innerHTML = `
+      <div class="fc-head">
+        <div class="fc-color" style="background:${f.color};">${f.name[0]}</div>
+        <div class="fc-info">
+          <div class="fc-name">${f.name}</div>
+          <div class="fc-meta">${f.type} · ID: <span style="font-family:var(--mono);font-size:11px;">${f.id}</span></div>
+        </div>
+        <span class="badge ${f.active?'s':'d'}">${f.active?'활성':'비활성'}</span>
+      </div>
+      <div class="fc-stats">
+        <div class="fc-stat"><div class="v">${f.memberCount}</div><div class="l">팩션원</div></div>
+        <div class="fc-stat"><div class="v" style="color:${whCount>0?'var(--success)':'var(--tx3)'};">${whCount}/5</div><div class="l">웹훅</div></div>
+      </div>
+      <div class="fc-actions">
+        <button class="btn p sm" onclick="openFactionDetail('${f.id}')">🔔 웹훅 설정</button>
+        <button class="btn g sm" onclick="toast('Firebase 연동 후 실제 데이터 조회 가능','info')">👥 팩션원 보기</button>
+        <button class="btn d sm" onclick="toast('팩션 비활성화 처리','warn')">🔒 비활성화</button>
+      </div>`;
+    el.appendChild(d);
+  });
+}
+
+function filterFactions(v) { renderFactions(v); }
+
+function renderCodes() {
+  const tb = document.getElementById('codeList');
+  tb.innerHTML = '';
+  if (!MOCK_CODES.length) {
+    tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--tx3);padding:24px;">활성 코드 없음</td></tr>';
+    return;
+  }
+  MOCK_CODES.forEach(c => {
+    const remaining = Math.max(0, c.expiresAt - Date.now());
+    const hrs = Math.floor(remaining / 3600000);
+    const mins = Math.floor((remaining % 3600000) / 60000);
+    const expired = remaining <= 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--p);">${c.code}</span></td>
+      <td style="font-family:var(--mono);font-size:12px;color:var(--tx2);">${c.targetId.slice(0,8)}...</td>
+      <td><b>${c.factionName}</b></td>
+      <td>${c.founderRank}</td>
+      <td style="font-size:12px;color:var(--tx3);">${c.createdAt}</td>
+      <td><span class="badge ${expired?'d':'s'}">${expired?'만료됨':`${hrs}시간 ${mins}분`}</span></td>
+      <td style="display:flex;gap:4px;">
+        <button class="btn d sm" onclick="cancelCode('${c.code}')">취소</button>
+      </td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function renderWebhooks() {
+  const tb = document.getElementById('whTable');
+  tb.innerHTML = '';
+  MOCK_FACTIONS.forEach(f => {
+    const wh = f.webhooks;
+    const dot = (v) => `<div style="width:8px;height:8px;border-radius:50%;background:${v?'var(--success)':'var(--tx3)'};margin:0 auto;"></div>`;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><div style="display:flex;align-items:center;gap:8px;"><div style="width:8px;height:8px;border-radius:50%;background:${f.color};"></div><b>${f.name}</b></div></td>
+      <td style="text-align:center;">${dot(wh.rp)}</td>
+      <td style="text-align:center;">${dot(wh.trade)}</td>
+      <td style="text-align:center;">${dot(wh.warn)}</td>
+      <td style="text-align:center;">${dot(wh.notice)}</td>
+      <td style="text-align:center;">${dot(wh.member)}</td>
+      <td><button class="btn g sm" onclick="openFactionDetail('${f.id}')">설정</button></td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function renderLogs() {
+  const el = document.getElementById('allLogs');
+  el.innerHTML = '';
+  MOCK_LOGS.forEach(l => {
+    const d = document.createElement('div');
+    d.className = 'log-item';
+    d.innerHTML = `<div class="log-dot ${l.dot}"></div><div class="log-text">${l.text}</div><div class="log-time">${l.time}</div>`;
+    el.appendChild(d);
+  });
+}
+
+// ══════════════════════════════════════════════
+// 팩션 상세 / 웹훅
+// ══════════════════════════════════════════════
+function openFactionDetail(factionId) {
+  const f = MOCK_FACTIONS.find(x => x.id === factionId);
+  if (!f) return;
+  currentFactionId = factionId;
+
+  document.getElementById('fdTitle').textContent = `${f.name} - 설정`;
+  document.getElementById('fdSub').textContent = `팩션 ID: ${f.id}`;
+
+  // 웹훅 채우기
+  ['rp','trade','warn','notice','member'].forEach(key => {
+    const inp = document.getElementById(`wh-${key}`);
+    const status = document.getElementById(`wh-${key}-status`);
+    if (inp) inp.value = f.webhooks[key] || '';
+    if (status) {
+      status.className = 'wh-status ' + (f.webhooks[key] ? 'ok' : 'none');
+    }
+  });
+
+  om('moFactionDetail');
+}
+
+function testWh(key) {
+  const url = document.getElementById(`wh-${key}`).value.trim();
+  if (!url) { toast('웹훅 URL을 먼저 입력해주세요.', 'error'); return; }
+  if (!url.includes('discord.com/api/webhooks/')) { toast('올바른 Discord 웹훅 URL이 아닙니다.', 'error'); return; }
+
+  // 실제 테스트 전송 (CORS 이슈로 서버 통해야 하지만 데모에서는 시뮬레이션)
+  const names = { rp:'RP 보고서', trade:'거래 보고서', warn:'내부경고', notice:'공지사항', member:'팩션원' };
+  toast(`${names[key]} 웹훅 테스트 전송 중...`, 'info');
+
+  // 실제 배포 시 서버 API 호출:
+  // fetch('/api/admin/webhook-test', { method:'POST', body: JSON.stringify({ url, type: key }) })
+  setTimeout(() => {
+    document.getElementById(`wh-${key}-status`).className = 'wh-status ok';
+    toast(`${names[key]} 웹훅 테스트 전송 완료!`, 'success');
+  }, 800);
+}
+
+async function saveFactionDetail() {
+  const f = MOCK_FACTIONS.find(x => x.id === currentFactionId);
+  if (!f) return;
+
+  const webhooks = {};
+  ['rp','trade','warn','notice','member'].forEach(key => {
+    webhooks[key] = document.getElementById(`wh-${key}`)?.value.trim() || '';
+  });
+
+  const data = await apiFetch(`/api/admin/faction/${currentFactionId}/webhooks`, {
+    method: 'PUT',
+    body: JSON.stringify({ webhooks }),
+  });
+
+  if (data?.ok) {
+    // 로컬 반영
+    f.webhooks = webhooks;
+    ['rp','trade','warn','notice','member'].forEach(key => {
+      const status = document.getElementById(`wh-${key}-status`);
+      if (status) status.className = 'wh-status ' + (webhooks[key] ? 'ok' : 'none');
+    });
+    renderWebhooks();
+    cm('moFactionDetail');
+    toast('웹훅 설정이 저장되었습니다!', 'success');
+  } else {
+    toast('저장 실패: ' + (data?.reason || '서버 오류'), 'error');
+  }
+}
+
+function deleteFaction() {
+  if (!confirm('정말 이 팩션을 삭제하시겠습니까? 모든 데이터가 삭제됩니다.')) return;
+  cm('moFactionDetail');
+  toast('팩션 삭제 처리 (Firebase 연동 후 실제 삭제)', 'warn');
+}
+
+// ══════════════════════════════════════════════
+// 코드 관리
+// ══════════════════════════════════════════════
+async function issueCode() {
+  const userId      = document.getElementById('icUserId').value.trim();
+  const factionName = document.getElementById('icFactionName').value.trim();
+  const factionType = document.getElementById('icFactionType').value;
+  const founderRank = document.getElementById('icFounderRank').value.trim();
+
+  if (!userId || !factionName || !founderRank) {
+    toast('모든 항목을 입력해주세요.', 'error'); return;
+  }
+
+  // 실제 API 서버 → 봇 통해 코드 발급
+  try {
+    const btn = document.querySelector('#moIssueCode .btn.p.sm');
+    if (btn) { btn.disabled = true; btn.textContent = '발급 중...'; }
+
+    const data = await apiFetch('/api/admin/issue-code', {
+      method: 'POST',
+      body: JSON.stringify({ userId, factionName, factionType, founderRankName: founderRank }),
+    });
+
+    if (btn) { btn.disabled = false; btn.textContent = '코드 발급 →'; }
+
+    if (data?.ok) {
+      cm('moIssueCode');
+      await loadCodes();
+      renderCodes();
+      updateCountBadges();
+      toast(`코드 ${data.code} 발급 완료! 유저 DM으로 전송됩니다.`, 'success');
+      ['icUserId','icFactionName','icFounderRank'].forEach(id => document.getElementById(id).value = '');
+    } else {
+      toast('코드 발급 실패: ' + (data?.reason || '서버 오류'), 'error');
+    }
+  } catch (err) {
+    toast('API 오류: ' + err.message, 'error');
+  }
+}
+
+async function cancelCode(code) {
+  const entry = MOCK_CODES.find(c => c.code === code);
+  if (!entry) return;
+
+  const data = await apiFetch(`/api/admin/cancel-code/${entry.targetId}`, { method: 'DELETE' });
+  if (data?.ok) {
+    await loadCodes();
+    renderCodes();
+    updateCountBadges();
+    toast(`코드 ${code} 취소됨`, 'warn');
+  } else {
+    toast('취소 실패: ' + (data?.reason || '오류'), 'error');
+  }
+}
+
+function generateCode() {
+  const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length:6}, () => c[Math.floor(Math.random()*c.length)]).join('');
+}
+
+// ══════════════════════════════════════════════
+// 비밀번호 변경
+// ══════════════════════════════════════════════
+function changePw() {
+  const cur     = document.getElementById('pwCur').value;
+  const newPw   = document.getElementById('pwNew').value;
+  const confirm = document.getElementById('pwConfirm').value;
+
+  if (CryptoJS.SHA256(cur).toString() !== getStoredHash()) {
+    toast('현재 비밀번호가 틀렸습니다.', 'error'); return;
+  }
+  if (newPw.length < 8) {
+    toast('새 비밀번호는 8자 이상이어야 합니다.', 'error'); return;
+  }
+  if (newPw !== confirm) {
+    toast('새 비밀번호가 일치하지 않습니다.', 'error'); return;
+  }
+
+  const newHash = CryptoJS.SHA256(newPw).toString();
+  localStorage.setItem('tc_admin_pw_hash', newHash);
+
+  cm('moPwChange');
+  ['pwCur','pwNew','pwConfirm'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('pwStrength').className = 'pw-strength';
+  toast('비밀번호가 변경되었습니다!', 'success');
+}
+
+function checkPwStrength(pw) {
+  const bar = document.getElementById('pwStrength');
+  const txt = document.getElementById('pwStrengthTxt');
+  if (!pw) { bar.className='pw-strength'; txt.textContent=''; return; }
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  const levels = [['',''],['weak','약함'],['weak','약함'],['medium','보통'],['strong','강함']];
+  const [cls, label] = levels[score] || ['',''];
+  bar.className = 'pw-strength ' + cls;
+  txt.textContent = label;
+  txt.style.color = cls==='strong'?'var(--success)':cls==='medium'?'var(--warning)':'var(--danger)';
+}
+
+function togglePw(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+// ══════════════════════════════════════════════
+// 기타
+// ══════════════════════════════════════════════
+function toggleMaintenance(el) {
+  el.classList.toggle('on');
+  const on = el.classList.contains('on');
+  toast(on ? '⚠️ 점검 모드 활성화됨 - 전체 인트라넷 접속 차단' : '점검 모드 해제됨', on ? 'warn' : 'success');
+}
+
+async function refreshAll() {
+  toast('새로고침 중...', 'info');
+  await Promise.all([loadFactions(), loadCodes(), loadLogs()]);
+  renderOverview(); renderFactions(); renderCodes(); renderWebhooks(); renderLogs(); updateCountBadges();
+  toast('새로고침 완료', 'info');
+}
+
+// 화면 전환
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+const PT = { overview:'전체 현황', factions:'팩션 목록', codes:'인트라넷 코드', webhooks:'웹훅 일괄 관리', logs:'활동 로그', settings:'시스템 설정' };
+
+function navTo(p, el) {
+  document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+  document.getElementById(`page-${p}`)?.classList.add('active');
+  document.querySelectorAll('.ni[data-p]').forEach(x => x.classList.remove('on'));
+  (el || document.querySelector(`[data-p="${p}"]`))?.classList.add('on');
+  document.getElementById('tbt').textContent = PT[p] || p;
+}
+
+// 모달
+function om(id) { document.getElementById(id).classList.add('open'); }
+function cm(id) { document.getElementById(id).classList.remove('open'); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.mo.open').forEach(m => m.classList.remove('open'));
+});
+document.querySelectorAll('.mo').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); }));
+
+// 토스트
+function toast(msg, type='info') {
+  const ic = { success:'✅', error:'❌', info:'ℹ️', warn:'⚠️' };
+  const w = document.getElementById('tw');
+  const t = document.createElement('div');
+  t.className = `toast ${type==='warn'?'warn':type}`;
+  t.innerHTML = `<span>${ic[type]||'ℹ️'}</span><span>${msg}</span>`;
+  w.appendChild(t);
+  setTimeout(() => { t.style.animation='tOut .2s ease forwards'; setTimeout(()=>t.remove(),200); }, 3500);
+}
+
+// ══════════════════════════════════════════════
+// window 전역 노출 (type="module" → onclick 연결)
+// ══════════════════════════════════════════════
+window.doLogin           = doLogin;
+window.adminLogout       = adminLogout;
+window.togglePw          = togglePw;
+window.checkPwStrength   = checkPwStrength;
+window.changePw          = changePw;
+window.showScreen        = showScreen;
+window.navTo             = navTo;
+window.initApp           = initApp;
+window.refreshAll        = refreshAll;
+window.openFactionDetail = openFactionDetail;
+window.saveFactionDetail = saveFactionDetail;
+window.deleteFaction     = deleteFaction;
+window.testWh            = testWh;
+window.om                = om;
+window.cm                = cm;
+window.issueCode         = issueCode;
+window.cancelCode        = cancelCode;
+window.filterFactions    = filterFactions;
+window.toggleMaintenance = toggleMaintenance;
+window.toast             = toast;
+window.updateCountBadges = updateCountBadges;
+window.renderOverview    = renderOverview;
+window.renderFactions    = renderFactions;
+window.renderCodes       = renderCodes;
+window.renderWebhooks    = renderWebhooks;
+window.renderLogs        = renderLogs;
+
+
+// ── 초기 실행 ──
+updateAttemptDisplay();
+checkSession(); // 세션 자동 복원
+</script>
+</body>
+</html>
