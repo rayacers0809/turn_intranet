@@ -1,0 +1,2199 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Turn City 인트라넷</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--p:#2563EB;--pd:#1d4ed8;--pl:#3b82f6;--pbg:rgba(37,99,235,.08);--pbd:rgba(37,99,235,.2);--danger:#EF4444;--success:#22C55E;--warning:#F59E0B;--info:#3B82F6;--r:8px;--rl:12px;--rx:16px;--font:'Noto Sans KR',sans-serif;--mono:'JetBrains Mono',monospace;--tr:.15s ease;}
+[data-theme="light"]{--bg:#F0F4F9;--bg2:#fff;--bg3:#F8FAFC;--bg4:#EEF2F7;--bg5:#E2E8F0;--bd:#E2E8F0;--bd2:#CBD5E1;--tx:#0F172A;--tx2:#475569;--tx3:#94A3B8;--sh:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.04);--shm:0 4px 24px rgba(0,0,0,.10);}
+[data-theme="dark"]{--bg:#0D1117;--bg2:#161B22;--bg3:#1C2128;--bg4:#21262D;--bg5:#30363D;--bd:#30363D;--bd2:#484F58;--tx:#E6EDF3;--tx2:#8B949E;--tx3:#484F58;--sh:0 1px 3px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.2);--shm:0 4px 24px rgba(0,0,0,.4);}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--tx);min-height:100vh;font-size:14px;line-height:1.5;transition:background .25s,color .25s;-webkit-font-smoothing:antialiased;}
+button{cursor:pointer;font-family:var(--font);border:none;background:none;}
+input,textarea,select{font-family:var(--font);}
+.screen{display:none;}.screen.active{display:flex;}
+
+/* ── LANDING ── */
+#screen-landing{min-height:100vh;flex-direction:column;background:linear-gradient(135deg,#EEF2FF 0%,#E0F2FE 45%,#DCFCE7 100%);position:relative;overflow:hidden;}
+[data-theme="dark"] #screen-landing{background:linear-gradient(135deg,#0f172a,#0c1a2e,#0a1628);}
+.lnav{display:flex;align-items:center;padding:16px 48px;background:rgba(255,255,255,.75);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.5);position:sticky;top:0;z-index:50;}
+[data-theme="dark"] .lnav{background:rgba(22,27,34,.85);border-bottom-color:rgba(255,255,255,.05);}
+.lnav-logo{display:flex;align-items:center;gap:10px;flex:1;}
+.lnav-icon{width:34px;height:34px;background:var(--p);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;color:#fff;}
+.lnav-text{font-size:16px;font-weight:800;}
+.lnav-links{display:flex;gap:24px;align-items:center;}
+.lnav-link{font-size:13px;font-weight:500;color:var(--tx2);cursor:pointer;transition:var(--tr);}
+.lnav-link:hover{color:var(--p);}
+.lnav-cta{background:var(--p);color:#fff;padding:7px 18px;border-radius:var(--r);font-weight:600;font-size:13px;cursor:pointer;transition:var(--tr);}
+.lnav-cta:hover{background:var(--pd);}
+.hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 24px 50px;}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.2);color:var(--p);border-radius:20px;padding:5px 14px;font-size:12px;font-weight:600;margin-bottom:22px;}
+.hero-title{font-size:50px;font-weight:900;line-height:1.15;letter-spacing:-1.5px;margin-bottom:18px;}
+.hero-title .hl{color:var(--p);}
+.hero-sub{font-size:16px;color:var(--tx2);max-width:500px;line-height:1.7;margin-bottom:36px;}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.hbtn{padding:12px 26px;border-radius:var(--r);font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:var(--tr);}
+.hbtn.p{background:var(--p);color:#fff;box-shadow:0 4px 14px rgba(37,99,235,.3);}
+.hbtn.p:hover{background:var(--pd);transform:translateY(-2px);}
+.hbtn.o{background:rgba(255,255,255,.85);color:var(--tx);border:1.5px solid var(--bd2);}
+.hbtn.o:hover{border-color:var(--p);color:var(--p);}
+.feats{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;padding:0 48px 72px;max-width:1100px;margin:0 auto;width:100%;}
+.feat{background:rgba(255,255,255,.78);border:1px solid rgba(255,255,255,.9);border-radius:var(--rx);padding:22px;backdrop-filter:blur(12px);transition:var(--tr);}
+[data-theme="dark"] .feat{background:rgba(22,27,34,.72);border-color:rgba(255,255,255,.06);}
+.feat:hover{transform:translateY(-3px);box-shadow:var(--shm);}
+.feat-ic{font-size:26px;margin-bottom:10px;}
+.feat-t{font-size:14px;font-weight:700;margin-bottom:5px;}
+.feat-d{font-size:12px;color:var(--tx2);line-height:1.6;}
+
+/* ── MODALS ── */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.48);backdrop-filter:blur(4px);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;}
+.mo.open{display:flex;}
+.md{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rx);padding:28px;width:480px;max-width:100%;box-shadow:var(--shm);animation:mIn .2s ease;max-height:90vh;overflow-y:auto;}
+.md.wide{width:600px;}
+@keyframes mIn{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+.mh h2{font-size:17px;font-weight:700;margin-bottom:4px;}
+.mh p{font-size:13px;color:var(--tx2);margin-bottom:20px;line-height:1.6;}
+.mf{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;}
+
+/* 온보딩 스텝 */
+.steps{display:flex;gap:5px;margin-bottom:20px;}
+.sdot{flex:1;height:3px;border-radius:2px;background:var(--bg5);transition:.3s;}
+.sdot.done{background:var(--p);}
+.sdot.cur{background:var(--p);opacity:.45;}
+.slbl{font-size:11px;color:var(--tx3);margin-bottom:14px;}
+.ob-opt{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:var(--r);border:1.5px solid var(--bd);margin-bottom:7px;cursor:pointer;transition:var(--tr);font-size:14px;font-weight:500;}
+.ob-opt:hover{border-color:var(--p);background:var(--pbg);}
+.ob-opt.on{border-color:var(--p);background:var(--pbg);color:var(--p);font-weight:600;}
+.ob-chk{width:18px;height:18px;border-radius:50%;border:2px solid var(--bd2);margin-left:auto;flex-shrink:0;transition:var(--tr);display:flex;align-items:center;justify-content:center;font-size:10px;}
+.ob-opt.on .ob-chk{background:var(--p);border-color:var(--p);color:#fff;}
+.auth-digits{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:14px 0;}
+.adig{height:50px;background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--r);text-align:center;font-size:22px;font-weight:700;color:var(--p);outline:none;transition:var(--tr);font-family:var(--mono);}
+.adig:focus{border-color:var(--p);background:var(--bg2);box-shadow:0 0 0 3px var(--pbg);}
+
+/* ── 직급 관리 모달 ── */
+.class-tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--bg3);border-radius:var(--r);padding:4px;}
+.ctab{flex:1;padding:7px;border-radius:6px;font-size:12px;font-weight:600;color:var(--tx2);cursor:pointer;text-align:center;transition:var(--tr);}
+.ctab.on{background:var(--bg2);color:var(--tx);box-shadow:0 1px 4px rgba(0,0,0,.12);}
+.ctab.on[data-cls="고위직"]{color:#7C3AED;}
+.ctab.on[data-cls="간부직"]{color:#2563EB;}
+.ctab.on[data-cls="일반직"]{color:#0F766E;}
+.ctab.on[data-cls="특수직"]{color:#D97706;}
+
+.perm-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+.perm-item{display:flex;align-items:center;gap:8px;padding:9px 11px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);cursor:pointer;transition:var(--tr);font-size:12px;font-weight:500;}
+.perm-item:hover{border-color:var(--pbd);}
+.perm-item.on{background:var(--pbg);border-color:var(--p);color:var(--p);font-weight:600;}
+.perm-item .pchk{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--bd2);display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;transition:var(--tr);}
+.perm-item.on .pchk{background:var(--p);border-color:var(--p);color:#fff;}
+
+/* 직급 클래스 배지 */
+.cls-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700;}
+.cls-고위직{background:rgba(124,58,237,.1);color:#7C3AED;border:1px solid rgba(124,58,237,.2);}
+.cls-간부직{background:rgba(37,99,235,.1);color:#2563EB;border:1px solid rgba(37,99,235,.2);}
+.cls-일반직{background:rgba(15,118,110,.1);color:#0F766E;border:1px solid rgba(15,118,110,.2);}
+.cls-특수직{background:rgba(217,119,6,.1);color:#D97706;border:1px solid rgba(217,119,6,.2);}
+
+/* ── APP ── */
+#screen-app{flex-direction:row;min-height:100vh;}
+.sidebar{width:230px;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:transform .3s;}
+.sb-brand{padding:0 16px;height:58px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--bd);background:var(--p);}
+.sb-logo{width:32px;height:32px;background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.35);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0;}
+.sb-fn{font-size:13px;font-weight:700;color:#fff;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sb-ft{font-size:10px;background:rgba(255,255,255,.2);color:#fff;border-radius:4px;padding:2px 7px;font-weight:600;flex-shrink:0;}
+.sb-user{padding:13px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;}
+.uava{width:36px;height:36px;border-radius:50%;background:var(--p);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;overflow:hidden;}
+.uava img{width:100%;height:100%;border-radius:50%;object-fit:cover;}
+.uname{font-size:13px;font-weight:600;}
+.urank{font-size:11px;color:var(--p);font-weight:600;}
+/* 직급 클래스 인디케이터 */
+.ucls{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block;margin-top:2px;}
+.sb-nav{flex:1;overflow-y:auto;padding:10px 8px;scrollbar-width:none;}
+.sb-nav::-webkit-scrollbar{display:none;}
+.nsec{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.8px;padding:10px 8px 4px;}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--r);font-size:13px;font-weight:500;color:var(--tx2);cursor:pointer;transition:var(--tr);margin-bottom:1px;position:relative;}
+.ni:hover{background:var(--bg3);color:var(--tx);}
+.ni.on{background:var(--pbg);color:var(--p);font-weight:600;}
+.ni.on::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:55%;background:var(--p);border-radius:0 3px 3px 0;}
+.ni.locked{opacity:.4;cursor:not-allowed;}
+.ni.locked:hover{background:none;color:var(--tx2);}
+.ni-ic{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
+.ni-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;font-family:var(--mono);}
+.ni-lock{margin-left:auto;font-size:11px;color:var(--tx3);}
+.sb-foot{padding:10px 8px;border-top:1px solid var(--bd);}
+.main{margin-left:230px;flex:1;min-height:100vh;display:flex;flex-direction:column;}
+.topbar{height:58px;background:var(--bg2);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 24px;gap:12px;position:sticky;top:0;z-index:50;}
+.tbt{font-size:15px;font-weight:700;flex:1;}
+.tbr{display:flex;align-items:center;gap:6px;}
+.ib{width:34px;height:34px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;color:var(--tx2);font-size:16px;transition:var(--tr);cursor:pointer;}
+.ib:hover{background:var(--bg3);color:var(--tx);}
+.tbsep{width:1px;height:20px;background:var(--bd);margin:0 2px;}
+.thbtn{width:34px;height:34px;border-radius:var(--r);background:var(--bg3);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;transition:var(--tr);}
+.thbtn:hover{border-color:var(--p);}
+.content{flex:1;padding:24px;}
+.page{display:none;}.page.active{display:block;}
+
+/* ── 공통 ── */
+.card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rl);padding:20px;box-shadow:var(--sh);}
+.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.ct{font-size:14px;font-weight:700;display:flex;align-items:center;gap:7px;}
+.ct .ti{color:var(--p);}
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.sc{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rl);padding:16px 18px;box-shadow:var(--sh);transition:var(--tr);}
+.sc:hover{border-color:var(--pbd);transform:translateY(-1px);box-shadow:var(--shm);}
+.sl{font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:10px;display:flex;align-items:center;gap:5px;}
+.sv{font-size:28px;font-weight:900;font-family:var(--mono);color:var(--tx);line-height:1;margin-bottom:4px;}
+.ss{font-size:11px;color:var(--tx3);}
+.sc.cp .sv{color:var(--p);}.sc.cs .sv{color:var(--success);}.sc.cd .sv{color:var(--danger);}.sc.cw .sv{color:var(--warning);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;}
+.bbp{background:var(--pbg);color:var(--p);border:1px solid var(--pbd);}
+.bbs{background:rgba(34,197,94,.1);color:var(--success);border:1px solid rgba(34,197,94,.2);}
+.bbd{background:rgba(239,68,68,.1);color:var(--danger);border:1px solid rgba(239,68,68,.2);}
+.bbw{background:rgba(245,158,11,.1);color:var(--warning);border:1px solid rgba(245,158,11,.2);}
+.bbg{background:var(--bg4);color:var(--tx2);border:1px solid var(--bd);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 18px;border-radius:var(--r);font-size:13px;font-weight:600;transition:var(--tr);cursor:pointer;}
+.btn.p{background:var(--p);color:#fff;}.btn.p:hover{background:var(--pd);}
+.btn.g{background:var(--bg3);border:1.5px solid var(--bd);color:var(--tx2);}.btn.g:hover{border-color:var(--p);color:var(--p);}
+.btn.d{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:var(--danger);}.btn.d:hover{background:rgba(239,68,68,.15);}
+.btn.sm{padding:6px 12px;font-size:12px;}
+.tb{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.sbi{background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--r);padding:6px 11px;font-size:13px;color:var(--tx);outline:none;width:200px;transition:var(--tr);}
+.sbi:focus{border-color:var(--p);}
+.tbsp{flex:1;}
+.tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.tbl th{background:var(--bg3);padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.4px;border-bottom:1.5px solid var(--bd);}
+.tbl td{padding:11px 12px;border-bottom:1px solid var(--bd);vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tbody tr:hover td{background:var(--bg3);}
+.fi{display:flex;flex-direction:column;gap:5px;}
+.fi label{font-size:12px;font-weight:600;color:var(--tx2);}
+.inp{width:100%;background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--r);padding:10px 13px;font-size:14px;color:var(--tx);outline:none;transition:var(--tr);}
+.inp:focus{border-color:var(--p);background:var(--bg2);box-shadow:0 0 0 3px var(--pbg);}
+.toggle{width:38px;height:20px;background:var(--bg5);border-radius:10px;position:relative;cursor:pointer;transition:.25s;flex-shrink:0;border:1px solid var(--bd);}
+.toggle.on{background:var(--p);border-color:var(--p);}
+.toggle::after{content:'';position:absolute;width:14px;height:14px;background:#fff;border-radius:50%;top:2px;left:2px;transition:.25s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.toggle.on::after{left:20px;}
+.sr{display:flex;align-items:center;gap:16px;padding:13px 0;border-bottom:1px solid var(--bd);}
+.sr:last-child{border-bottom:none;}
+.si{flex:1;}.si .sl2{font-size:13px;font-weight:600;}.si .sd{font-size:12px;color:var(--tx2);margin-top:2px;}
+
+/* ── 대시보드 ── */
+.dash-banner{background:var(--p);border-radius:var(--rl);padding:22px 24px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;position:relative;overflow:hidden;}
+.dash-banner::after{content:'TC';position:absolute;right:20px;top:50%;transform:translateY(-50%);font-size:72px;font-weight:900;color:rgba(255,255,255,.07);font-family:var(--mono);pointer-events:none;}
+.db h2{font-size:18px;font-weight:700;color:#fff;margin-bottom:4px;}
+.db p{font-size:13px;color:rgba(255,255,255,.75);}
+.opill{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;color:#fff;backdrop-filter:blur(4px);position:relative;z-index:1;white-space:nowrap;}
+.odot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ade80;margin-right:5px;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.ci{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rl);padding:16px 20px;display:flex;align-items:center;gap:16px;margin-bottom:20px;box-shadow:var(--sh);}
+.ci-clk{font-size:24px;font-weight:900;font-family:var(--mono);color:var(--p);}
+.ci-l{font-size:11px;color:var(--tx2);}
+.ci-s{font-size:13px;font-weight:600;}
+.ci-btn{padding:9px 22px;border-radius:var(--r);font-size:13px;font-weight:700;background:var(--success);color:#fff;transition:var(--tr);cursor:pointer;border:none;}
+.ci-btn:hover{filter:brightness(1.08);transform:translateY(-1px);}
+.ci-btn.out{background:var(--danger);}
+.acts{display:flex;flex-direction:column;}
+.act{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd);}
+.act:last-child{border-bottom:none;}
+.adot{width:7px;height:7px;border-radius:50%;background:var(--p);flex-shrink:0;margin-top:6px;}
+.adot.s{background:var(--success);}.adot.d{background:var(--danger);}.adot.w{background:var(--warning);}.adot.g{background:var(--tx3);}
+.at{font-size:13px;flex:1;line-height:1.5;}
+.atm{font-size:11px;color:var(--tx3);font-family:var(--mono);flex-shrink:0;}
+
+/* 공지 */
+.nt-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--bd);}
+.nt-item:last-child{border-bottom:none;}
+.nt-type{padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px;}
+.nt-notice{background:var(--pbg);color:var(--p);}
+.nt-urgent{background:rgba(239,68,68,.1);color:var(--danger);}
+.nt-event{background:rgba(34,197,94,.1);color:var(--success);}
+.nt-body{flex:1;}
+.nt-title{font-size:13px;font-weight:600;margin-bottom:2px;cursor:pointer;}
+.nt-title:hover{color:var(--p);}
+.nt-meta{font-size:11px;color:var(--tx3);}
+.nt-unread{width:6px;height:6px;border-radius:50%;background:var(--p);flex-shrink:0;margin-top:6px;}
+
+/* 순위 */
+.rki{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:var(--r);transition:var(--tr);}
+.rki:hover{background:var(--bg3);}
+.rki.top{background:rgba(234,179,8,.05);border:1px solid rgba(234,179,8,.15);}
+.rkp{width:22px;font-size:13px;font-weight:900;font-family:var(--mono);color:var(--tx3);flex-shrink:0;text-align:center;}
+.rkp.p1{color:#EAB308;font-size:16px;}.rkp.p2{color:#94A3B8;font-size:15px;}.rkp.p3{color:#B45309;font-size:14px;}
+.rka{width:28px;height:28px;border-radius:50%;background:var(--p);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;overflow:hidden;}
+.rka img{width:100%;height:100%;border-radius:50%;object-fit:cover;}
+.rkn{flex:1;font-size:13px;font-weight:600;}
+.rks{font-size:12px;font-weight:700;font-family:var(--mono);color:var(--p);}
+
+/* 출근부 */
+.att-grid{display:grid;grid-template-columns:130px repeat(7,1fr);gap:3px;}
+.ac{padding:9px 6px;border-radius:5px;text-align:center;font-size:12px;}
+.ah{background:var(--bg3);font-weight:700;color:var(--tx2);font-size:11px;}
+.an{background:var(--bg3);text-align:left;font-weight:500;display:flex;align-items:center;gap:7px;padding-left:8px;}
+.ao{background:rgba(34,197,94,.12);color:var(--success);font-weight:700;}
+.ax{background:var(--bg3);color:var(--tx3);}
+.at2{background:rgba(245,158,11,.12);color:var(--warning);font-weight:700;}
+
+/* 팩션원 */
+.mr{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:6px;transition:var(--tr);}
+.mr:hover{border-color:var(--pbd);background:var(--bg2);}
+.ma{width:38px;height:38px;border-radius:50%;background:var(--p);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;overflow:hidden;}
+.ma img{width:100%;height:100%;border-radius:50%;object-fit:cover;}
+.mn{font-size:14px;font-weight:600;}
+.mrk{font-size:11px;color:var(--p);font-weight:600;}
+.mst{display:flex;gap:14px;}
+.ms{text-align:center;}
+.ms .v{font-size:15px;font-weight:700;font-family:var(--mono);}
+.ms .l{font-size:10px;color:var(--tx3);}
+.mact{display:flex;gap:5px;}
+
+/* 직급 */
+.rankrow{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:6px;transition:var(--tr);}
+.rankrow:hover{border-color:var(--pbd);}
+.rnum{width:28px;height:28px;border-radius:6px;background:var(--pbg);border:1px solid var(--pbd);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--p);font-family:var(--mono);flex-shrink:0;}
+.rname{flex:1;font-size:14px;font-weight:600;}
+.perms{display:flex;gap:4px;flex-wrap:wrap;}
+.perm{padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;background:var(--bg4);color:var(--tx2);}
+.perm.on{background:rgba(34,197,94,.1);color:var(--success);}
+
+/* 경고 */
+.wc{background:var(--bg3);border:1px solid var(--bd);border-left:3px solid var(--danger);border-radius:var(--r);padding:13px 15px;margin-bottom:8px;}
+.wh{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.wn{font-size:14px;font-weight:700;}
+.wlv{font-size:10px;font-family:var(--mono);font-weight:700;background:rgba(239,68,68,.1);color:var(--danger);padding:2px 7px;border-radius:4px;}
+.wr{font-size:13px;color:var(--tx2);margin-bottom:5px;}
+.wm{font-size:11px;color:var(--tx3);font-family:var(--mono);}
+
+/* 금고 */
+.vault{background:var(--p);border-radius:var(--rl);padding:26px;text-align:center;margin-bottom:16px;position:relative;overflow:hidden;}
+.vault::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23fff' fill-opacity='0.03'%3E%3Cpath d='M0 0h20v20H0V0zm20 20h20v20H20V20z'/%3E%3C/g%3E%3C/svg%3E");}
+.vl{font-size:12px;color:rgba(255,255,255,.7);margin-bottom:7px;position:relative;}
+.va{font-size:36px;font-weight:900;font-family:var(--mono);color:#fff;letter-spacing:-1px;position:relative;}
+.vs{font-size:11px;color:rgba(255,255,255,.6);margin-top:4px;position:relative;}
+.txi{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--bd);}
+.txi:last-child{border-bottom:none;}
+.txic{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.txic.in{background:rgba(34,197,94,.1);}.txic.out{background:rgba(239,68,68,.1);}
+.txd{flex:1;}.txd .t{font-size:13px;font-weight:600;}.txd .d{font-size:11px;color:var(--tx3);font-family:var(--mono);}
+.txa{font-weight:700;font-family:var(--mono);font-size:13px;}
+.txa.in{color:var(--success);}.txa.out{color:var(--danger);}
+
+/* ── CUSTOMIZER ── */
+.cz-ov{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:900;display:none;}
+.cz-ov.open{display:block;}
+.cz{position:fixed;top:0;right:0;width:286px;height:100vh;background:var(--bg2);border-left:1px solid var(--bd);z-index:901;transform:translateX(100%);transition:transform .3s;display:flex;flex-direction:column;box-shadow:var(--shm);}
+.cz.open{transform:translateX(0);}
+.czh{padding:16px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;}
+.czh h3{font-size:14px;font-weight:700;}
+.czb{flex:1;overflow-y:auto;padding:18px;}
+.czs{margin-bottom:22px;}
+.czl{font-size:10px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;}
+.cpgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:10px;}
+.cpx{width:100%;aspect-ratio:1;border-radius:7px;cursor:pointer;border:2px solid transparent;transition:var(--tr);position:relative;}
+.cpx:hover{transform:scale(1.08);}
+.cpx.on{border-color:#fff;box-shadow:0 0 0 2px var(--tx);}
+.cpx.on::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;}
+.ccrow{display:flex;gap:8px;align-items:center;}
+.ccpick{width:34px;height:34px;border-radius:var(--r);border:1.5px solid var(--bd);cursor:pointer;padding:2px;background:var(--bg3);}
+.tplist{display:flex;flex-direction:column;gap:5px;}
+.tp{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:var(--r);border:1.5px solid var(--bd);cursor:pointer;transition:var(--tr);font-size:13px;font-weight:500;}
+.tp:hover{border-color:var(--pbd);background:var(--bg3);}
+.tp.on{border-color:var(--p);background:var(--pbg);color:var(--p);font-weight:600;}
+.tdot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.bgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+.bgo{aspect-ratio:16/9;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:var(--tr);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;}
+.bgo:hover{border-color:var(--pbd);}
+.bgo.on{border-color:var(--p);}
+.bgo.bl{background:#F0F4F9;color:#475569;}
+.bgo.dk{background:#0D1117;color:#8B949E;}
+.bgo.bu{background:linear-gradient(135deg,#EEF2FF,#E0E7FF);color:#4338CA;}
+.czfoot{padding:14px 18px;border-top:1px solid var(--bd);display:flex;gap:8px;}
+
+/* TOAST */
+.tw{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:11px 14px;min-width:250px;box-shadow:var(--shm);display:flex;align-items:center;gap:9px;font-size:13px;animation:tIn .2s ease;}
+.toast.success{border-left:3px solid var(--success);}
+.toast.error{border-left:3px solid var(--danger);}
+.toast.info{border-left:3px solid var(--p);}
+@keyframes tIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes tOut{from{opacity:1}to{transform:translateX(110%);opacity:0}}
+.wh-row{display:flex;gap:6px;margin-top:7px;}
+.wh-row .inp{flex:1;padding:8px 10px;font-size:12px;}
+
+/* 접근 차단 */
+.blocked{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 24px;text-align:center;color:var(--tx2);}
+.blocked .bic{font-size:48px;margin-bottom:16px;opacity:.4;}
+.blocked h3{font-size:16px;font-weight:700;margin-bottom:8px;color:var(--tx);}
+.blocked p{font-size:13px;color:var(--tx2);}
+
+/* 모바일 */
+.menu-btn{display:none;width:34px;height:34px;border-radius:var(--r);align-items:center;justify-content:center;background:var(--bg3);font-size:15px;cursor:pointer;}
+.sbo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;}
+.sbo.open{display:block;}
+@media(max-width:768px){.sidebar{transform:translateX(-100%);}.sidebar.open{transform:translateX(0);}.main{margin-left:0;}.menu-btn{display:flex;}.sg{grid-template-columns:1fr 1fr;}.g2,.g3{grid-template-columns:1fr;}.content{padding:16px;}.feats{grid-template-columns:1fr;padding:0 20px 60px;}.hero-title{font-size:34px;}.lnav{padding:14px 20px;}}
+@media(max-width:480px){.sg{grid-template-columns:1fr;}}
+::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:3px;}
+
+/* ── 팩션원 탭 ── */
+.mem-tab{padding:10px 16px;font-size:13px;font-weight:600;color:var(--tx2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:var(--tr);display:flex;align-items:center;}
+.mem-tab:hover{color:var(--tx);}
+.mem-tab.on{color:var(--p);border-bottom-color:var(--p);}
+
+/* ── 가입신청 카드 ── */
+.apply-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:16px 18px;margin-bottom:8px;transition:var(--tr);}
+.apply-card:hover{border-color:var(--pbd);}
+.ac-head{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.ac-ava{width:40px;height:40px;border-radius:50%;background:var(--p);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0;}
+.ac-name{font-size:15px;font-weight:700;}
+.ac-meta{font-size:12px;color:var(--tx2);}
+.ac-msg{font-size:13px;color:var(--tx2);background:var(--bg4);border-radius:var(--r);padding:10px 13px;margin-bottom:12px;line-height:1.6;border-left:3px solid var(--pbd);}
+.ac-actions{display:flex;gap:8px;}
+
+/* ── 사직서 카드 ── */
+.resign-card{background:var(--bg3);border:1px solid var(--bd);border-left:3px solid var(--warning);border-radius:var(--r);padding:16px 18px;margin-bottom:8px;}
+.rc-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.rc-name{font-size:14px;font-weight:700;}
+.rc-reason{font-size:13px;color:var(--tx2);margin-bottom:10px;line-height:1.6;}
+.rc-meta{font-size:11px;color:var(--tx3);font-family:var(--mono);margin-bottom:10px;}
+.rc-actions{display:flex;gap:8px;}
+
+/* ── 승진/강등 모달 ── */
+.promote-member-item{display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--r);margin-bottom:6px;cursor:pointer;transition:var(--tr);}
+.promote-member-item:hover{border-color:var(--pbd);}
+.promote-member-item.selected{border-color:var(--p);background:var(--pbg);}
+.rank-select-item{display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--bg3);border:1.5px solid var(--bd);border-radius:var(--r);margin-bottom:6px;cursor:pointer;transition:var(--tr);}
+.rank-select-item:hover{border-color:var(--pbd);}
+.rank-select-item.selected{border-color:var(--p);background:var(--pbg);}
+
+/* ── OAuth 로딩 화면 ── */
+#screen-oauth{min-height:100vh;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);}
+.oauth-card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rx);padding:48px 40px;width:420px;max-width:95vw;box-shadow:var(--shm);text-align:center;}
+.oauth-spinner{width:48px;height:48px;border:3px solid var(--bg5);border-top-color:var(--p);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 20px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.oauth-title{font-size:17px;font-weight:700;margin-bottom:8px;}
+.oauth-sub{font-size:13px;color:var(--tx2);}
+
+/* ── 가입 화면 ── */
+#screen-join{min-height:100vh;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);padding:24px;}
+.join-card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rx);padding:36px 32px;width:480px;max-width:100%;box-shadow:var(--shm);}
+.join-card .jhead{text-align:center;margin-bottom:28px;}
+.join-card .jhead .jicon{width:52px;height:52px;background:var(--p);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;color:#000;margin:0 auto 12px;}
+.join-card .jhead h2{font-size:20px;font-weight:800;margin-bottom:4px;}
+.join-card .jhead p{font-size:13px;color:var(--tx2);}
+.join-steps{display:flex;gap:5px;margin-bottom:22px;}
+.jstep{flex:1;height:3px;border-radius:2px;background:var(--bg5);transition:.3s;}
+.jstep.done{background:var(--p);}
+.jstep.cur{background:var(--p);opacity:.45;}
+.jstep-label{font-size:11px;color:var(--tx3);margin-bottom:14px;text-align:center;}
+.join-discord-btn{width:100%;padding:13px;background:#5865F2;color:#fff;border-radius:var(--r);font-size:14px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:.15s;margin-bottom:12px;}
+.join-discord-btn:hover{background:#4752C4;transform:translateY(-1px);}
+.join-discord-btn svg{flex-shrink:0;}
+.join-user-preview{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:16px;}
+.jup-ava{width:40px;height:40px;border-radius:50%;background:#5865F2;overflow:hidden;flex-shrink:0;}
+.jup-ava img{width:100%;height:100%;object-fit:cover;}
+.jup-name{font-size:14px;font-weight:700;}
+.jup-id{font-size:11px;color:var(--tx3);font-family:var(--mono);}
+.code-input-wrap{position:relative;}
+.code-input-wrap .inp{letter-spacing:3px;font-family:var(--mono);font-weight:700;font-size:16px;text-transform:uppercase;}
+.faction-found-card{background:var(--pbg);border:1px solid var(--pbd);border-radius:var(--r);padding:14px;margin-top:10px;display:none;}
+.faction-found-card.show{display:flex;align-items:center;gap:12px;}
+.ffc-color{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;color:#fff;flex-shrink:0;}
+.ffc-name{font-size:14px;font-weight:700;color:var(--p);}
+.ffc-type{font-size:12px;color:var(--tx2);}
+.join-pending{text-align:center;padding:32px 0;}
+.join-pending .jp-icon{font-size:48px;margin-bottom:16px;}
+.join-pending h3{font-size:17px;font-weight:700;margin-bottom:8px;}
+.join-pending p{font-size:13px;color:var(--tx2);line-height:1.7;}
+</style>
+</head>
+<body>
+<div class="tw" id="tw"></div>
+
+<!-- ── 온보딩 모달 ── -->
+<div class="mo" id="moOB">
+<div class="md">
+  <div class="mh"><h2 id="obTitle">인트라넷 도입하기</h2><p id="obSub">다음 정보를 작성해주세요.</p></div>
+  <div class="steps"><div class="sdot" id="sp1"></div><div class="sdot" id="sp2"></div><div class="sdot" id="sp3"></div></div>
+  <div class="slbl" id="obLbl"></div>
+  <div id="obBody"></div>
+  <div class="mf">
+    <button class="btn g sm" id="obBack" onclick="obPrev()">← 이전</button>
+    <button class="btn p sm" id="obNext" onclick="obNext()">다음 →</button>
+  </div>
+</div>
+</div>
+
+<!-- ── 승진/강등 모달 ── -->
+<div class="mo" id="moPromote">
+<div class="md" style="width:560px;">
+  <div class="mh"><h2>👆 승진/강등 처리</h2><p>팩션원을 선택하고 변경할 직급을 지정하세요.</p></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div>
+      <div style="font-size:12px;font-weight:700;color:var(--tx2);margin-bottom:10px;">① 팩션원 선택</div>
+      <div id="promoteMemberList" style="max-height:280px;overflow-y:auto;"></div>
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:700;color:var(--tx2);margin-bottom:10px;">② 변경할 직급 선택</div>
+      <div id="promoteRankList" style="max-height:280px;overflow-y:auto;"></div>
+    </div>
+  </div>
+  <div id="promotePreview" style="display:none;background:var(--pbg);border:1px solid var(--pbd);border-radius:var(--r);padding:12px;margin-top:14px;">
+    <div style="font-size:12px;font-weight:600;color:var(--p);margin-bottom:4px;">변경 미리보기</div>
+    <div style="font-size:13px;" id="promotePreviewText"></div>
+  </div>
+  <div class="mf">
+    <button class="btn g sm" onclick="cm('moPromote')">취소</button>
+    <button class="btn p sm" id="promoteConfirmBtn" onclick="confirmPromote()" disabled style="opacity:.4;cursor:not-allowed;">승진/강등 처리 →</button>
+  </div>
+</div>
+</div>
+
+<!-- ── RP 모달 ── -->
+<div class="mo" id="moRp">
+<div class="md">
+  <div class="mh"><h2>📋 RP 보고서 작성</h2><p>진행한 RP 활동을 기록하세요. 승진 점수에 반영됩니다.</p></div>
+  <div style="display:flex;flex-direction:column;gap:12px;">
+    <div class="fi"><label>RP 유형</label><select class="inp"><option>순찰 RP</option><option>검문 RP</option><option>사건 처리</option><option>체포/심문</option><option>조직 미팅</option><option>기타</option></select></div>
+    <div class="fi"><label>RP 내용</label><textarea class="inp" id="rpCont" rows="4" placeholder="진행한 RP 내용을 상세히 작성해주세요..."></textarea></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="fi"><label>참여 인원</label><input class="inp" type="number" value="1" min="1"></div>
+      <div class="fi"><label>소요 시간(분)</label><input class="inp" type="number" value="30" min="1"></div>
+    </div>
+  </div>
+  <div class="mf"><button class="btn g sm" onclick="cm('moRp')">취소</button><button class="btn p sm" onclick="submitRp()">제출하기 →</button></div>
+</div>
+</div>
+
+<!-- ── 거래 모달 ── -->
+<div class="mo" id="moTr">
+<div class="md">
+  <div class="mh"><h2>💰 거래 보고서 작성</h2><p>팩션 관련 거래 내역을 기록하세요.</p></div>
+  <div style="display:flex;flex-direction:column;gap:12px;">
+    <div class="fi"><label>거래 유형</label><select class="inp"><option>물품 판매</option><option>물품 구매</option><option>서비스 제공</option><option>내부 이체</option><option>기타</option></select></div>
+    <div class="fi"><label>거래 상대방</label><input class="inp" id="trPeer" placeholder="상대방 닉네임"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="fi"><label>금액</label><input class="inp" type="number" placeholder="0"></div>
+      <div class="fi"><label>물품</label><input class="inp" placeholder="물품명"></div>
+    </div>
+    <div class="fi"><label>비고</label><textarea class="inp" rows="2" placeholder="추가 메모..."></textarea></div>
+  </div>
+  <div class="mf"><button class="btn g sm" onclick="cm('moTr')">취소</button><button class="btn p sm" onclick="submitTr()">제출하기 →</button></div>
+</div>
+</div>
+
+<!-- ── 공지 모달 ── -->
+<div class="mo" id="moNt">
+<div class="md">
+  <div class="mh"><h2>📢 공지사항 작성</h2><p>팩션원에게 전달할 공지를 작성하세요.</p></div>
+  <div style="display:flex;flex-direction:column;gap:12px;">
+    <div class="fi"><label>유형</label><select class="inp" id="ntType"><option>공지</option><option>긴급</option><option>이벤트</option></select></div>
+    <div class="fi"><label>제목</label><input class="inp" id="ntTitle" placeholder="공지 제목"></div>
+    <div class="fi"><label>내용</label><textarea class="inp" id="ntCont" rows="4" placeholder="공지 내용을 입력하세요..."></textarea></div>
+  </div>
+  <div class="mf"><button class="btn g sm" onclick="cm('moNt')">취소</button><button class="btn p sm" onclick="submitNt()">등록하기 →</button></div>
+</div>
+</div>
+
+<!-- ── 직급 생성 모달 ── -->
+<div class="mo" id="moRankCreate">
+<div class="md wide">
+  <div class="mh"><h2>🏅 직급 생성</h2><p>새 직급을 생성하고 권한을 설정하세요. 팩션장만 직급을 생성할 수 있습니다.</p></div>
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    <div class="fi"><label>직급명</label><input class="inp" id="newRankName" placeholder="예: 경위, 부팀장, 매니저..."></div>
+    <div class="fi">
+      <label>직급 클래스</label>
+      <div class="class-tabs" id="classTabs">
+        <div class="ctab on" data-cls="고위직" onclick="selectClass(this)">👑 고위직</div>
+        <div class="ctab" data-cls="간부직" onclick="selectClass(this)">⭐ 간부직</div>
+        <div class="ctab" data-cls="일반직" onclick="selectClass(this)">👤 일반직</div>
+        <div class="ctab" data-cls="특수직" onclick="selectClass(this)">🔷 특수직</div>
+      </div>
+      <div style="font-size:11px;color:var(--tx3);margin-top:6px;" id="classDesc">고위직: 팩션장이 부여한 관리 권한을 사용할 수 있는 최상위 클래스</div>
+    </div>
+    <div class="fi">
+      <label>권한 설정 <span style="color:var(--tx3);font-weight:400;">(팩션장이 직접 ON/OFF)</span></label>
+      <div class="perm-grid" id="permGrid"></div>
+    </div>
+  </div>
+  <div class="mf"><button class="btn g sm" onclick="cm('moRankCreate')">취소</button><button class="btn p sm" onclick="createRank()">직급 생성 →</button></div>
+</div>
+</div>
+
+<!-- ── CUSTOMIZER ── -->
+<div class="cz-ov" id="czOv" onclick="closeCz()"></div>
+<div class="cz" id="cz">
+  <div class="czh"><h3>🎨 테마 커스터마이징</h3><button class="btn g sm" style="padding:3px 8px;" onclick="closeCz()">✕</button></div>
+  <div class="czb">
+    <div class="czs">
+      <div class="czl">팩션 유형 프리셋</div>
+      <div class="tplist">
+        <div class="tp on" id="tp-police" onclick="applyType('police')"><div class="tdot" style="background:#2563EB"></div>공무원 / 경찰</div>
+        <div class="tp" id="tp-ems" onclick="applyType('ems')"><div class="tdot" style="background:#EF4444"></div>EMS / 소방</div>
+        <div class="tp" id="tp-corp" onclick="applyType('corp')"><div class="tdot" style="background:#0EA5E9"></div>기업 / 회사</div>
+        <div class="tp" id="tp-mafia" onclick="applyType('mafia')"><div class="tdot" style="background:#7C3AED"></div>조직 / 마피아</div>
+        <div class="tp" id="tp-gang" onclick="applyType('gang')"><div class="tdot" style="background:#DC2626"></div>갱단 / 범죄조직</div>
+      </div>
+    </div>
+    <div class="czs">
+      <div class="czl">메인 컬러</div>
+      <div class="cpgrid" id="cpGrid">
+        <div class="cpx on" data-c="#2563EB" style="background:#2563EB" onclick="applyColor('#2563EB',this)"></div>
+        <div class="cpx" data-c="#0EA5E9" style="background:#0EA5E9" onclick="applyColor('#0EA5E9',this)"></div>
+        <div class="cpx" data-c="#7C3AED" style="background:#7C3AED" onclick="applyColor('#7C3AED',this)"></div>
+        <div class="cpx" data-c="#EF4444" style="background:#EF4444" onclick="applyColor('#EF4444',this)"></div>
+        <div class="cpx" data-c="#0F766E" style="background:#0F766E" onclick="applyColor('#0F766E',this)"></div>
+        <div class="cpx" data-c="#D97706" style="background:#D97706" onclick="applyColor('#D97706',this)"></div>
+        <div class="cpx" data-c="#BE185D" style="background:#BE185D" onclick="applyColor('#BE185D',this)"></div>
+        <div class="cpx" data-c="#1E293B" style="background:#1E293B" onclick="applyColor('#1E293B',this)"></div>
+        <div class="cpx" data-c="#064E3B" style="background:#064E3B" onclick="applyColor('#064E3B',this)"></div>
+        <div class="cpx" data-c="#78350F" style="background:#78350F" onclick="applyColor('#78350F',this)"></div>
+      </div>
+      <div class="ccrow">
+        <input type="color" class="ccpick" id="cpick" value="#2563EB" oninput="applyColor(this.value,null)">
+        <input class="inp" style="flex:1;padding:7px 10px;font-size:12px;font-family:var(--mono);" id="chex" value="#2563EB" oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value))applyColor(this.value,null)">
+      </div>
+    </div>
+    <div class="czs">
+      <div class="czl">모드</div>
+      <div class="bgrid">
+        <div class="bgo bl on" id="bg-l" onclick="setMode('light')">라이트</div>
+        <div class="bgo dk" id="bg-d" onclick="setMode('dark')">다크</div>
+        <div class="bgo bu" id="bg-b" onclick="setMode('blue')">블루</div>
+      </div>
+    </div>
+    <div class="czs">
+      <div class="czl">팩션 정보</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <input class="inp" id="czName" value="TURN CITY PD" placeholder="팩션명" oninput="document.getElementById('sbFN').textContent=this.value">
+        <input class="inp" id="czTag" value="경찰" placeholder="태그" oninput="document.getElementById('sbFT').textContent=this.value">
+      </div>
+    </div>
+    <div class="czs">
+      <div class="czl">팩션 로고</div>
+      <div style="border:2px dashed var(--bd);border-radius:var(--r);padding:16px;text-align:center;cursor:pointer;" onclick="document.getElementById('logoUp').click()">
+        <div style="font-size:22px;margin-bottom:4px;">🖼️</div>
+        <div style="font-size:12px;color:var(--tx2);">클릭하여 로고 업로드</div>
+        <div style="font-size:11px;color:var(--tx3);">PNG, JPG (100×100 권장)</div>
+      </div>
+      <input type="file" id="logoUp" accept="image/*" style="display:none" onchange="uploadLogo(this)">
+    </div>
+  </div>
+  <div class="czfoot">
+    <button class="btn p" style="flex:1;" onclick="saveCz()">✅ 저장</button>
+    <button class="btn g" onclick="resetCz()">초기화</button>
+  </div>
+</div>
+
+<!-- ── OAuth 처리 중 화면 ── -->
+<div id="screen-oauth" class="screen">
+  <div class="oauth-card">
+    <div class="oauth-spinner" id="oauthSpinner"></div>
+    <div class="oauth-title" id="oauthTitle">Discord 로그인 처리 중...</div>
+    <div class="oauth-sub" id="oauthSub">잠시만 기다려주세요.</div>
+  </div>
+</div>
+
+<!-- ── 가입 화면 ── -->
+<div id="screen-join" class="screen">
+  <div class="join-card">
+    <div class="jhead">
+      <div class="jicon">TC</div>
+      <h2 id="joinTitle">Turn City 인트라넷</h2>
+      <p id="joinSub">팩션 인트라넷에 가입하세요.</p>
+    </div>
+
+    <!-- 스텝 바 -->
+    <div class="join-steps">
+      <div class="jstep" id="js1"></div>
+      <div class="jstep" id="js2"></div>
+      <div class="jstep" id="js3"></div>
+    </div>
+    <div class="jstep-label" id="jsLabel"></div>
+
+    <!-- 스텝 내용 -->
+    <div id="joinBody"></div>
+
+    <!-- 푸터 버튼 -->
+    <div id="joinFooter"></div>
+  </div>
+</div>
+
+<!-- ════ LANDING ════ -->
+<div id="screen-landing" class="screen active">
+  <nav class="lnav">
+    <div class="lnav-logo">
+      <div class="lnav-icon">TC</div>
+      <div class="lnav-text">Turn City</div>
+    </div>
+    <div class="lnav-links">
+      <span class="lnav-link">소식</span>
+      <span class="lnav-link">기능</span>
+      <span class="lnav-link">다운로드</span>
+      <span class="lnav-link" onclick="startLogin()">인트라넷 접속</span>
+      <span class="lnav-cta" onclick="openOB()">도입하기</span>
+      <div class="thbtn" onclick="toggleTheme()" id="thBtn">🌙</div>
+    </div>
+  </nav>
+  <div class="hero">
+    <div class="hero-badge">🏙️ Turn City 전용 인트라넷 시스템</div>
+    <h1 class="hero-title">팩션 운영의<br><span class="hl">모든 것</span>을 한 곳에</h1>
+    <p class="hero-sub">출근부, RP 보고서, 거래 내역, 팩션원 관리까지.<br>Turn City 팩션 운영을 위한 통합 인트라넷 플랫폼.</p>
+    <div class="hero-btns">
+      <button class="hbtn p" onclick="startLogin()">🚀 인트라넷 접속</button>
+      <button class="hbtn o" onclick="openOB()">📋 팩션 인트라넷 만들기</button>
+    </div>
+  </div>
+  <div class="feats">
+    <div class="feat"><div class="feat-ic">📅</div><div class="feat-t">출근부 & 근무 통계</div><div class="feat-d">주간 출근률, 근무시간 자동 집계. 팩션원 활동 현황을 한눈에 파악하세요.</div></div>
+    <div class="feat"><div class="feat-ic">📋</div><div class="feat-t">RP / 거래 보고서</div><div class="feat-d">RP 활동 기록 및 승인 시스템. 거래 내역 감사 기능으로 투명한 운영.</div></div>
+    <div class="feat"><div class="feat-ic">🏅</div><div class="feat-t">4단계 직급 권한 시스템</div><div class="feat-d">고위직·간부직·일반직·특수직. 팩션장이 직급별 권한을 직접 설정.</div></div>
+    <div class="feat"><div class="feat-ic">🏦</div><div class="feat-t">팩션 금고 관리</div><div class="feat-d">수입/지출 내역 기록 및 통계. 팩션 재정 현황을 실시간으로 확인.</div></div>
+    <div class="feat"><div class="feat-ic">🎨</div><div class="feat-t">완전한 커스터마이징</div><div class="feat-d">팩션 유형별 프리셋, 색상 변경, 로고 업로드로 나만의 인트라넷.</div></div>
+    <div class="feat"><div class="feat-ic">🔔</div><div class="feat-t">Discord 연동</div><div class="feat-d">보고서 제출, 경고 부여, 금고 변동 등 주요 이벤트를 Discord로 알림.</div></div>
+  </div>
+</div>
+
+<!-- ════ APP ════ -->
+<div id="screen-app" class="screen">
+  <div class="sbo" id="sbo" onclick="closeSb()"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-brand">
+      <div class="sb-logo" id="sbLogo">TC</div>
+      <span class="sb-fn" id="sbFN">TURN CITY PD</span>
+      <span class="sb-ft" id="sbFT">경찰</span>
+    </div>
+    <div class="sb-user">
+      <div class="uava" id="uAva">김</div>
+      <div>
+        <div class="uname" id="uName">김도현</div>
+        <div class="urank" id="uRank">경위</div>
+        <span class="ucls cls-고위직" id="uCls">고위직</span>
+      </div>
+    </div>
+    <nav class="sb-nav" id="sbNav">
+      <!-- JS로 권한 기반 렌더 -->
+    </nav>
+    <div class="sb-foot">
+      <div class="ni" onclick="openCz()"><span class="ni-ic">🎨</span>테마 커스터마이징</div>
+      <div class="ni" onclick="logout()"><span class="ni-ic">🚪</span>로그아웃</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="menu-btn" onclick="toggleSb()">☰</button>
+      <div class="tbt" id="tbt">대시보드</div>
+      <div class="tbr">
+        <div class="ib" onclick="toast('알림이 없습니다.','info')">🔔</div>
+        <div class="tbsep"></div>
+        <div class="thbtn" onclick="toggleTheme()" id="thBtn2">🌙</div>
+        <div class="ib" onclick="openCz()">🎨</div>
+      </div>
+    </header>
+    <div class="content">
+
+      <!-- 대시보드 -->
+      <div class="page active" id="page-dashboard">
+        <div class="dash-banner">
+          <div class="db"><h2 id="dbW">안녕하세요, 김도현님 👋</h2><p id="dbS">오늘도 Turn City 치안 유지에 힘써주세요.</p></div>
+          <div class="opill"><span class="odot"></span>온라인 7명</div>
+        </div>
+        <div class="ci">
+          <div><div class="ci-l">현재 시각</div><div class="ci-clk" id="clk">--:--:--</div></div>
+          <div style="flex:1;"><div class="ci-l">오늘 출근</div><div class="ci-s" id="ciS">미출근</div></div>
+          <button class="ci-btn" id="ciBtn" onclick="toggleCI()">출근하기</button>
+        </div>
+        <div class="sg">
+          <div class="sc cp"><div class="sl">📋 이번 주 RP</div><div class="sv">12</div><div class="ss">전주 대비 +3</div></div>
+          <div class="sc cs"><div class="sl">✅ 출근률</div><div class="sv">87%</div><div class="ss">이번 주 기준</div></div>
+          <div class="sc cw"><div class="sl">💰 거래 보고서</div><div class="sv">5</div><div class="ss">미승인 2건</div></div>
+          <div class="sc cd"><div class="sl">⚠️ 내부경고</div><div class="sv">1</div><div class="ss">처리 대기</div></div>
+        </div>
+        <div class="g2">
+          <div class="card"><div class="ch"><div class="ct"><span class="ti">📌</span>최근 활동</div></div>
+            <div class="acts">
+              <div class="act"><div class="adot s"></div><div class="at"><b>박민준</b>이 RP 보고서를 제출했습니다.</div><div class="atm">5분 전</div></div>
+              <div class="act"><div class="adot"></div><div class="at"><b>이서연</b>이 출근했습니다.</div><div class="atm">23분 전</div></div>
+              <div class="act"><div class="adot"></div><div class="at"><b>최지훈</b>이 거래 보고서를 제출했습니다.</div><div class="atm">1시간 전</div></div>
+              <div class="act"><div class="adot d"></div><div class="at"><b>김도현</b>에게 내부경고 부여됨.</div><div class="atm">3시간 전</div></div>
+              <div class="act"><div class="adot s"></div><div class="at">팩션 금고에 <b>$500,000</b> 입금.</div><div class="atm">어제</div></div>
+            </div>
+          </div>
+          <div class="card"><div class="ch"><div class="ct"><span class="ti">🏅</span>이번 주 활동 순위</div></div><div id="rkBoard"></div></div>
+        </div>
+      </div>
+
+      <!-- 공지사항 -->
+      <div class="page" id="page-notice">
+        <div class="card">
+          <div class="ch"><div class="ct"><span class="ti">📢</span>공지사항</div><button class="btn p sm" id="btnWriteNotice" onclick="om('moNt')">+ 공지 작성</button></div>
+          <div id="ntList"></div>
+        </div>
+      </div>
+
+      <!-- 출근부 -->
+      <div class="page" id="page-attendance">
+        <div class="card">
+          <div class="ch">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <button style="width:26px;height:26px;border-radius:6px;background:var(--bg3);border:1px solid var(--bd);font-size:11px;cursor:pointer;">◀</button>
+              <span style="font-size:14px;font-weight:600;">2025년 6월 1주차</span>
+              <button style="width:26px;height:26px;border-radius:6px;background:var(--bg3);border:1px solid var(--bd);font-size:11px;cursor:pointer;">▶</button>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button class="btn g sm" onclick="toast('엑셀 추출은 데스크탑 앱에서 지원됩니다.','info')">📊 엑셀 추출</button>
+              <button class="btn p sm" onclick="toggleCI()">출근/퇴근</button>
+            </div>
+          </div>
+          <div style="overflow-x:auto;"><div class="att-grid" id="attGrid"></div></div>
+        </div>
+      </div>
+
+      <!-- RP -->
+      <div class="page" id="page-rp">
+        <div class="card">
+          <div class="tb">
+            <button class="btn p sm" onclick="om('moRp')">+ RP 보고서 작성</button>
+            <input class="sbi" placeholder="검색...">
+            <div class="tbsp"></div>
+            <button class="btn g sm">전체</button><button class="btn g sm">대기중</button><button class="btn g sm">승인됨</button>
+          </div>
+          <div style="overflow-x:auto;"><table class="tbl"><thead><tr><th>#</th><th>작성자</th><th>유형</th><th>내용</th><th>시간</th><th>상태</th><th></th></tr></thead><tbody id="rpBody"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- 거래 -->
+      <div class="page" id="page-trade">
+        <div class="card">
+          <div class="tb">
+            <button class="btn p sm" onclick="om('moTr')">+ 거래 보고서 작성</button>
+            <input class="sbi" placeholder="검색...">
+            <div class="tbsp"></div>
+            <button class="btn g sm">전체</button><button class="btn g sm">감사 대기</button>
+          </div>
+          <div style="overflow-x:auto;"><table class="tbl"><thead><tr><th>#</th><th>작성자</th><th>유형</th><th>상대방</th><th>금액</th><th>물품</th><th>시간</th><th>상태</th></tr></thead><tbody id="trBody"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- 팩션원 -->
+      <div class="page" id="page-members">
+        <div style="display:flex;gap:0;border-bottom:2px solid var(--bd);margin-bottom:16px;">
+          <div class="mem-tab on" id="mtab-list" onclick="switchMemTab('list')">👥 팩션원 목록</div>
+          <div class="mem-tab" id="mtab-apply" onclick="switchMemTab('apply')">📨 가입 신청 <span style="background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px;" id="applyBadge">2</span></div>
+          <div class="mem-tab" id="mtab-resign" onclick="switchMemTab('resign')">📝 사직서 <span style="background:var(--warning);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px;" id="resignBadge">1</span></div>
+        </div>
+        <div id="mem-list">
+          <div class="tb"><input class="sbi" placeholder="팩션원 검색..."><div class="tbsp"></div><span style="font-size:12px;color:var(--tx2);">총 <b id="memberTotal">0</b>명</span></div>
+          <div id="memberList"></div>
+        </div>
+        <div id="mem-apply" style="display:none;"><div id="applyList"></div></div>
+        <div id="mem-resign" style="display:none;"><div id="resignList"></div></div>
+      </div>
+
+      <!-- 직급 -->
+      <div class="page" id="page-ranks">
+        <div class="tb">
+          <button class="btn p sm" id="btnCreateRank" onclick="openRankCreate()">+ 직급 생성</button>
+          <button class="btn p sm" id="btnPromote" onclick="openPromoteModal()">👆 승진/강등</button>
+        </div>
+        <div id="rankList"></div>
+      </div>
+
+      <!-- 경고 -->
+      <div class="page" id="page-warnings">
+        <div class="tb">
+          <button class="btn p sm" id="btnWarn" onclick="toast('경고 부여','info')">+ 경고 부여</button>
+          <input class="sbi" placeholder="검색...">
+        </div>
+        <div id="warnList"></div>
+      </div>
+
+      <!-- 금고 -->
+      <div class="page" id="page-account">
+        <div class="vault"><div class="vl">팩션 금고 잔액</div><div class="va">$2,450,000</div><div class="vs">마지막 업데이트: 방금 전</div></div>
+        <div class="g2">
+          <div class="card"><div class="ct" style="margin-bottom:14px;"><span class="ti">💸</span>거래 내역</div><div id="txList"></div></div>
+          <div class="card">
+            <div class="ct" style="margin-bottom:14px;"><span class="ti">📊</span>이번 달 통계</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+              <div class="sc cs" style="padding:14px;"><div class="sl">총 수입</div><div class="sv" style="font-size:20px;">$1.2M</div></div>
+              <div class="sc cd" style="padding:14px;"><div class="sl">총 지출</div><div class="sv" style="font-size:20px;">$380K</div></div>
+            </div>
+            <div style="background:var(--bg3);border-radius:var(--r);padding:12px;">
+              <div style="font-size:11px;color:var(--tx2);margin-bottom:7px;">수입/지출 비율</div>
+              <div style="height:8px;background:var(--bg5);border-radius:4px;overflow:hidden;"><div style="height:100%;width:76%;background:var(--p);border-radius:4px;"></div></div>
+              <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:11px;color:var(--tx3);"><span>수입 76%</span><span>지출 24%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 설정 -->
+      <div class="page" id="page-settings">
+        <div class="g2">
+          <div>
+            <div class="card">
+              <div class="ct" style="margin-bottom:14px;"><span class="ti">🏙️</span>팩션 기본 정보</div>
+              <div class="sr"><div class="si"><div class="sl2">팩션명</div><div class="sd">인트라넷에 표시되는 이름</div></div><input class="inp" value="TURN CITY PD" style="width:150px;padding:7px 10px;"></div>
+              <div class="sr"><div class="si"><div class="sl2">팩션 구분</div></div><select class="inp" style="width:110px;padding:7px 10px;"><option>경찰</option><option>마피아</option><option>EMS</option><option>기업</option><option>기타</option></select></div>
+              <div class="sr"><div class="si"><div class="sl2">가입 코드</div><div class="sd">팩션원 가입 시 사용</div></div><div style="display:flex;gap:6px;align-items:center;"><span style="font-family:var(--mono);font-size:13px;color:var(--p);font-weight:700;" id="joinCode">TC-7X9K</span><button class="btn g sm" onclick="regenCode()">재발급</button></div></div>
+            </div>
+            <div class="card" style="margin-top:16px;">
+              <div class="ct" style="margin-bottom:14px;"><span class="ti">🔔</span>Discord 웹훅</div>
+              <div style="margin-bottom:12px;"><div class="sr"><div class="si"><div class="sl2">RP 보고서 알림</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div><div class="wh-row"><input class="inp" placeholder="https://discord.com/api/webhooks/..."><button class="btn g sm" onclick="toast('테스트 전송!','success')">테스트</button></div></div>
+              <div style="margin-bottom:12px;"><div class="sr"><div class="si"><div class="sl2">거래 보고서 알림</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div><div class="wh-row"><input class="inp" placeholder="https://discord.com/api/webhooks/..."><button class="btn g sm" onclick="toast('테스트 전송!','success')">테스트</button></div></div>
+              <div><div class="sr"><div class="si"><div class="sl2">내부경고 알림</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div><div class="wh-row"><input class="inp" placeholder="https://discord.com/api/webhooks/..."><button class="btn g sm" onclick="toast('테스트 전송!','success')">테스트</button></div></div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="ct" style="margin-bottom:14px;"><span class="ti">🔧</span>기능 설정</div>
+              <div class="sr"><div class="si"><div class="sl2">RP 보고서 승인 필요</div><div class="sd">관리자 승인 후 점수 반영</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+              <div class="sr"><div class="si"><div class="sl2">거래 감사 시스템</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+              <div class="sr"><div class="si"><div class="sl2">출근부 자동 집계</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+              <div class="sr"><div class="si"><div class="sl2">활동 순위 시스템</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+              <div class="sr"><div class="si"><div class="sl2">공지 Discord 연동</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+            </div>
+            <div class="card" style="margin-top:16px;">
+              <div class="ct" style="margin-bottom:14px;"><span class="ti">⚡</span>관리 로그</div>
+              <div class="acts">
+                <div class="act"><div class="adot"></div><div class="at" style="font-size:12px;">직급 <b>경위</b> 권한 수정됨</div><div class="atm">10분 전</div></div>
+                <div class="act"><div class="adot g"></div><div class="at" style="font-size:12px;">가입 코드 재발급</div><div class="atm">2시간 전</div></div>
+                <div class="act"><div class="adot d"></div><div class="at" style="font-size:12px;"><b>정성민</b> 강퇴 처리</div><div class="atm">어제</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script type="module">
+// ══════════════════════════════════════════════
+// Firebase SDK 초기화
+// ══════════════════════════════════════════════
+import { initializeApp }        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, getDocs, collection, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, signInWithCustomToken, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getDatabase, ref as dbRef, set as dbSet, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getStorage } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyBdX5cOERb5x-qbdEbnosOT8_zBXDy-Qgk",
+  authDomain:        "turn-int.firebaseapp.com",
+  projectId:         "turn-int",
+  storageBucket:     "turn-int.firebasestorage.app",
+  messagingSenderId: "379171647793",
+  appId:             "1:379171647793:web:9306e645e3d31653e78010",
+  measurementId:     "G-720KP2XV4N",
+  databaseURL:       "https://turn-int-default-rtdb.asia-southeast1.firebasedatabase.app"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db          = getFirestore(firebaseApp);
+const auth        = getAuth(firebaseApp);
+const rtdb        = getDatabase(firebaseApp);
+const storage     = getStorage(firebaseApp);
+
+// API 서버 URL (Railway 배포 후 실제 URL로 교체)
+const API_URL = "https://your-server.railway.app"; // ← Railway 배포 후 실제 URL로 교체
+
+// ══════════════════════════════════════════════
+// 권한 정의
+// ══════════════════════════════════════════════
+const PERMS = {
+  rp_write:      { label: 'RP 보고서 작성',    icon: '📋' },
+  rp_approve:    { label: 'RP 보고서 승인',    icon: '✅' },
+  trade_write:   { label: '거래 보고서 작성',  icon: '💰' },
+  trade_approve: { label: '거래 보고서 승인',  icon: '🔍' },
+  notice_write:  { label: '공지사항 작성',     icon: '📢' },
+  attendance_edit:{ label: '출근부 수정',      icon: '📅' },
+  member_manage: { label: '팩션원 초대/강퇴',  icon: '👥' },
+  rank_manage:   { label: '직급 관리',         icon: '🏅' },
+  warn_give:     { label: '경고 부여',         icon: '⚠️' },
+  account_view:  { label: '금고 조회',         icon: '🏦' },
+  account_manage:{ label: '금고 입출금',       icon: '💳' },
+  settings:      { label: '시스템 설정',       icon: '⚙️' },
+  theme:         { label: '테마 변경',         icon: '🎨' },
+};
+
+// 클래스 기본 권한 (생성 시 기본값)
+const CLASS_DEFAULT_PERMS = {
+  고위직: ['rp_write','rp_approve','trade_write','trade_approve','notice_write','attendance_edit','member_manage','rank_manage','warn_give','account_view','account_manage','settings','theme'],
+  간부직: ['rp_write','rp_approve','trade_write','trade_approve','notice_write','warn_give','account_view'],
+  일반직: ['rp_write','trade_write'],
+  특수직: ['rp_write','trade_write','account_view'],
+};
+
+const CLASS_DESC = {
+  고위직: '고위직: 팩션장이 부여한 관리 권한을 사용할 수 있는 최상위 클래스',
+  간부직: '간부직: 보고서 승인, 경고 부여 등 중간 관리 역할',
+  일반직: '일반직: 기본 보고서 작성만 가능한 일반 팩션원',
+  특수직: '특수직: 특정 목적을 위한 커스텀 직급 (예: 회계, 외교관)',
+};
+
+// ── 현재 유저 상태 (로그인 시 세팅됨) ──
+let ME = {
+  name: '김도현',
+  rankName: '경위',
+  rankClass: '고위직',
+  isFounder: true, // 팩션장 여부
+  perms: Object.keys(PERMS), // 팩션장은 전체 권한
+};
+
+// ── 직급 데이터 ──
+let RANKS_DATA = [
+  { n:1, name:'총경',   cls:'고위직', perms: Object.keys(PERMS) },
+  { n:2, name:'경감',   cls:'고위직', perms: ['rp_write','rp_approve','trade_write','trade_approve','notice_write','warn_give','member_manage','account_view'] },
+  { n:3, name:'경위',   cls:'간부직', perms: ['rp_write','rp_approve','trade_write','notice_write','warn_give'] },
+  { n:4, name:'경사',   cls:'일반직', perms: ['rp_write','trade_write'] },
+  { n:5, name:'순경',   cls:'일반직', perms: ['rp_write'] },
+];
+
+// ── 권한 체크 함수 ──
+function can(perm) { return ME.isFounder || ME.perms.includes(perm); }
+
+// ── 사이드바 메뉴 정의 ──
+const MENU = [
+  { sec: '메인' },
+  { p:'dashboard', icon:'🏠', label:'대시보드' },
+  { p:'notice',    icon:'📢', label:'공지사항',   badge:'ntBadge', perm: null },
+  { p:'attendance',icon:'📅', label:'출근부',      perm: null },
+  { sec: '보고서' },
+  { p:'rp',        icon:'📋', label:'RP 보고서',   badge:'rpBadge', perm: null },
+  { p:'trade',     icon:'💰', label:'거래 보고서',  perm: null },
+  { sec: '팩션 관리' },
+  { p:'members',   icon:'👥', label:'팩션원 관리',  perm:'member_manage' },
+  { p:'ranks',     icon:'🏅', label:'직급 관리',    perm:'rank_manage' },
+  { p:'warnings',  icon:'⚠️', label:'내부경고',     badge:'wBadge', perm:'warn_give' },
+  { sec: '재정' },
+  { p:'account',   icon:'🏦', label:'팩션 금고',    perm:'account_view' },
+  { sec: '관리자' },
+  { p:'settings',  icon:'⚙️', label:'시스템 설정',  perm:'settings' },
+];
+
+const PT = { dashboard:'대시보드',notice:'공지사항',attendance:'출근부',rp:'RP 보고서',trade:'거래 보고서',members:'팩션원 관리',ranks:'직급 관리',warnings:'내부경고',account:'팩션 금고',settings:'시스템 설정' };
+
+// ─── 사이드바 렌더 ───────────────────────────
+function renderNav() {
+  const nav = document.getElementById('sbNav');
+  nav.innerHTML = '';
+  MENU.forEach(item => {
+    if (item.sec) {
+      const d = document.createElement('div');
+      d.className = 'nsec'; d.textContent = item.sec;
+      nav.appendChild(d); return;
+    }
+    const d = document.createElement('div');
+    const locked = item.perm && !can(item.perm);
+    d.className = 'ni' + (locked ? ' locked' : '');
+    d.dataset.p = item.p;
+    d.innerHTML = `<span class="ni-ic">${item.icon}</span>${item.label}${item.badge ? `<span class="ni-badge" id="${item.badge}">0</span>` : ''}${locked ? '<span class="ni-lock">🔒</span>' : ''}`;
+    if (!locked) d.addEventListener('click', () => nav_to(item.p, d));
+    nav.appendChild(d);
+  });
+  // 배지 초기값
+  setB('ntBadge', 2); setB('rpBadge', 3); setB('wBadge', 1);
+}
+function setB(id, n) { const el = document.getElementById(id); if (el) el.textContent = n; }
+
+// ─── 유저 클래스 배지 스타일 ─────────────────
+function renderUserInfo() {
+  document.getElementById('uName').textContent = ME.name;
+  document.getElementById('uRank').textContent = ME.rankName;
+  const cls = document.getElementById('uCls');
+  cls.textContent = ME.rankClass;
+  cls.className = `ucls cls-${ME.rankClass}`;
+}
+
+// ── 네비게이션 ──
+function nav_to(p, el) {
+  document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+  document.getElementById(`page-${p}`)?.classList.add('active');
+  document.querySelectorAll('.ni[data-p]').forEach(x => x.classList.remove('on'));
+  (el || document.querySelector(`[data-p="${p}"]`))?.classList.add('on');
+  document.getElementById('tbt').textContent = PT[p] || p;
+  if (window.innerWidth <= 768) closeSb();
+}
+
+// ── 권한 기반 버튼 제어 ──
+function applyPermUI() {
+  // 공지 작성 버튼
+  const btnNt = document.getElementById('btnWriteNotice');
+  if (btnNt) btnNt.style.display = can('notice_write') ? '' : 'none';
+  // 팩션원 관리 버튼
+  const btnInv = document.getElementById('btnInvite');
+  const btnRes = document.getElementById('btnResign');
+  if (btnInv) btnInv.style.display = can('member_manage') ? '' : 'none';
+  if (btnRes) btnRes.style.display = can('member_manage') ? '' : 'none';
+  // 직급 관리 버튼 (팩션장만 직급 생성)
+  const btnCR = document.getElementById('btnCreateRank');
+  const btnPr = document.getElementById('btnPromote');
+  if (btnCR) btnCR.style.display = ME.isFounder ? '' : 'none';
+  if (btnPr) btnPr.style.display = can('rank_manage') ? '' : 'none';
+  // 경고 부여 버튼
+  const btnW = document.getElementById('btnWarn');
+  if (btnW) btnW.style.display = can('warn_give') ? '' : 'none';
+}
+
+// ══════════════════════════════════════════════
+// 온보딩 (팩션 창설)
+// ══════════════════════════════════════════════
+let obStep = 1;
+const OB_STEPS = 3;
+
+function openOB() { obStep = 1; renderOB(); om('moOB'); }
+
+function renderOB() {
+  const titles = ['인트라넷 도입하기', '팩션장 직급 설정', '관리자 인증 코드'];
+  const subs   = ['1/3 · 팩션 기본 정보 입력', '2/3 · 팩션장 직급명을 입력하세요.\n인트라넷 생성 후 자동으로 부여됩니다.', '3/3 · 관리자에게 받은 6자리 코드를 입력하세요.'];
+  document.getElementById('obTitle').textContent = titles[obStep - 1];
+  document.getElementById('obSub').textContent   = subs[obStep - 1];
+  document.getElementById('obBack').style.visibility = obStep > 1 ? 'visible' : 'hidden';
+  document.getElementById('obNext').textContent = obStep < OB_STEPS ? '다음 →' : '생성하기 ✨';
+
+  ['sp1','sp2','sp3'].forEach((id, i) => {
+    document.getElementById(id).className = 'sdot' + (i < obStep - 1 ? ' done' : i === obStep - 1 ? ' cur' : '');
+  });
+  const slbl = ['팩션 기본 정보', '팩션장 직급 설정', '인증 코드 입력'];
+  document.getElementById('obLbl').textContent = slbl[obStep - 1];
+
+  const body = document.getElementById('obBody');
+  if (obStep === 1) {
+    body.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="fi"><label>팩션명</label><input class="inp" id="obFN" placeholder="예: TURN CITY PD, 흑야 패밀리, 모터스 그룹..."></div>
+        <div class="fi"><label>팩션 유형</label>
+          <select class="inp" id="obFT">
+            <option>경찰 / 공무원</option><option>EMS / 소방</option><option>기업 / 회사</option><option>조직 / 마피아</option><option>갱단 / 범죄조직</option><option>기타</option>
+          </select>
+        </div>
+      </div>`;
+  } else if (obStep === 2) {
+    body.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="fi"><label>팩션장 직급명</label><input class="inp" id="obRN" placeholder="예: 총경, 보스, 회장, CEO, 단장...">
+          <div style="font-size:11px;color:var(--tx3);margin-top:4px;">인트라넷 생성 후 이 직급이 자동으로 생성되며 본인에게 부여됩니다.</div>
+        </div>
+        <div style="background:var(--pbg);border:1px solid var(--pbd);border-radius:var(--r);padding:12px;">
+          <div style="font-size:12px;font-weight:600;color:var(--p);margin-bottom:6px;">👑 팩션장 직급은 자동으로 고위직 클래스 + 전체 권한으로 설정됩니다.</div>
+          <div style="font-size:11px;color:var(--tx2);">이후 직급 관리 페이지에서 추가 직급을 생성하고<br>각 직급별 권한을 직접 설정할 수 있습니다.</div>
+        </div>
+      </div>`;
+  } else {
+    body.innerHTML = `
+      <p style="font-size:12px;color:var(--tx2);margin-bottom:4px;">Turn City 관리자에게 요청하여 코드를 발급받으세요.</p>
+      <div style="background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:10px;margin-bottom:12px;font-size:12px;color:var(--tx2);">
+        관리자 Discord 봇 명령어: <span style="font-family:var(--mono);color:var(--p);">/인트라넷코드 발급 @닉네임</span>
+      </div>
+      <div class="fi" style="margin-top:12px;">
+        <label>인증 코드</label>
+        <input class="inp" id="obCodeInput" maxlength="10" placeholder="예: A3K9MX"
+          style="font-family:var(--mono);font-size:20px;font-weight:700;letter-spacing:6px;text-transform:uppercase;text-align:center;"
+          oninput="this.value=this.value.toUpperCase().replace(/[^0-9A-Z]/g,'')">
+        <div style="font-size:11px;color:var(--tx3);margin-top:4px;text-align:center;">대소문자 구분 없음</div>
+      </div>`;
+  }
+}
+
+function obNext() {
+  if (obStep === OB_STEPS) {
+    // step3: 코드 검증
+    const code = (document.getElementById('obCodeInput')?.value || '').trim();
+    if (!code || code.length < 4) {
+      toast('인증 코드를 입력해주세요.', 'error');
+      return;
+    }
+    cm('moOB');
+    toast('팩션 인트라넷이 생성되었습니다! 🎉', 'success');
+    setTimeout(() => { showScreen('screen-app'); }, 500);
+    return;
+  }
+  if (obStep < OB_STEPS) { obStep++; renderOB(); }
+}
+function obPrev() { if (obStep > 1) { obStep--; renderOB(); } }
+
+// ══════════════════════════════════════════════
+// 직급 생성 모달
+// ══════════════════════════════════════════════
+let selectedClass = '고위직';
+let selectedPerms = new Set(CLASS_DEFAULT_PERMS['고위직']);
+
+function openRankCreate() {
+  if (!ME.isFounder) { toast('팩션장만 직급을 생성할 수 있습니다.', 'error'); return; }
+  selectedClass = '고위직';
+  selectedPerms = new Set(CLASS_DEFAULT_PERMS['고위직']);
+  renderPermGrid();
+  om('moRankCreate');
+}
+
+function selectClass(el) {
+  document.querySelectorAll('.ctab').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+  selectedClass = el.dataset.cls;
+  document.getElementById('classDesc').textContent = CLASS_DESC[selectedClass];
+  selectedPerms = new Set(CLASS_DEFAULT_PERMS[selectedClass]);
+  renderPermGrid();
+}
+
+function renderPermGrid() {
+  const grid = document.getElementById('permGrid');
+  grid.innerHTML = '';
+  Object.entries(PERMS).forEach(([key, val]) => {
+    const on = selectedPerms.has(key);
+    const d = document.createElement('div');
+    d.className = 'perm-item' + (on ? ' on' : '');
+    d.innerHTML = `<div class="pchk">${on ? '✓' : ''}</div><span>${val.icon} ${val.label}</span>`;
+    d.onclick = () => {
+      if (selectedPerms.has(key)) selectedPerms.delete(key);
+      else selectedPerms.add(key);
+      renderPermGrid();
+    };
+    grid.appendChild(d);
+  });
+}
+
+function createRank() {
+  const name = document.getElementById('newRankName').value.trim();
+  if (!name) { toast('직급명을 입력해주세요.', 'error'); return; }
+  const newRank = { n: RANKS_DATA.length + 1, name, cls: selectedClass, perms: [...selectedPerms] };
+  RANKS_DATA.push(newRank);
+  document.getElementById('rankList').innerHTML = '';
+  renderRanks();
+  cm('moRankCreate');
+  toast(`${name} 직급이 생성되었습니다! (${selectedClass})`, 'success');
+}
+
+// ══════════════════════════════════════════════
+// 데이터 & 렌더
+// ══════════════════════════════════════════════
+const MEMBERS = [{name:'박민준',rank:'경감',cls:'고위직',rp:47,trade:12,warn:0},{name:'이서연',rank:'경위',cls:'간부직',rp:39,trade:8,warn:0},{name:'최지훈',rank:'경사',cls:'일반직',rp:31,trade:15,warn:1},{name:'김도현',rank:'경위',cls:'고위직',rp:28,trade:5,warn:1},{name:'정성훈',rank:'순경',cls:'일반직',rp:11,trade:2,warn:0}];
+const RP_D=[{id:1,author:'박민준',type:'순찰 RP',content:'23구역 순찰 및 검문',time:'10분 전',status:'approved'},{id:2,author:'이서연',type:'체포/심문',content:'용의자 체포 및 심문',time:'1시간 전',status:'approved'},{id:3,author:'최지훈',type:'사건 처리',content:'교통사고 현장 처리',time:'2시간 전',status:'pending'},{id:4,author:'김도현',type:'순찰 RP',content:'항구 주변 순찰',time:'어제',status:'pending'},{id:5,author:'정성훈',type:'조직 미팅',content:'주간 업무 미팅',time:'어제',status:'pending'}];
+const TR_D=[{id:1,author:'최지훈',type:'물품 판매',peer:'시민 김철수',amount:50000,item:'방탄복',time:'1시간 전',status:'pending'},{id:2,author:'이서연',type:'서비스 제공',peer:'EMS 박간호',amount:0,item:'응급 협조',time:'3시간 전',status:'approved'},{id:3,author:'박민준',type:'내부 이체',peer:'팩션 금고',amount:200000,item:'-',time:'어제',status:'approved'}];
+const TX_D=[{type:'in',ic:'💰',t:'물품 판매 수입',d:'2025-06-02',a:'+$200,000'},{type:'out',ic:'🔫',t:'장비 구매',d:'2025-06-01',a:'-$80,000'},{type:'in',ic:'🤝',t:'협력 팩션 지원금',d:'2025-05-31',a:'+$500,000'},{type:'out',ic:'🏠',t:'거점 유지비',d:'2025-05-30',a:'-$150,000'},{type:'in',ic:'💎',t:'특수 임무 보상',d:'2025-05-29',a:'+$300,000'}];
+let NOTICES=[{type:'urgent',title:'[긴급] 6월 1일 서버 점검 안내',author:'총경 박민준',date:'2025-06-01',unread:true},{type:'notice',title:'6월 월례 회의 일정 공지',author:'경감 이서연',date:'2025-05-31',unread:true},{type:'event',title:'창단 1주년 기념 이벤트 안내',author:'총경 박민준',date:'2025-05-28',unread:false},{type:'notice',title:'신규 팩션원 교육 일정 안내',author:'경위 최지훈',date:'2025-05-25',unread:false}];
+const TYPES={police:{p:'#2563EB',name:'TURN CITY PD',tag:'경찰'},ems:{p:'#EF4444',name:'TURN CITY EMS',tag:'EMS'},corp:{p:'#0EA5E9',name:'TURN CITY CORP',tag:'기업'},mafia:{p:'#7C3AED',name:'흑야 패밀리',tag:'조직'},gang:{p:'#DC2626',name:'레드 크루',tag:'갱단'}};
+
+let isCI = false, curTheme = 'light';
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderUserInfo();
+  renderNav();
+  applyPermUI();
+  startClock();
+  renderRkBoard(); renderAttendance(); renderRp(); renderTr(); renderMembers(); renderRanks(); renderWarnings(); renderTx(); renderNotices();
+  document.querySelectorAll('.ni[data-p]').forEach(el => el.addEventListener('click', () => nav_to(el.dataset.p, el)));
+});
+
+function renderNotices() {
+  const el = document.getElementById('ntList'); el.innerHTML = '';
+  const tm = {notice:'nt-notice',urgent:'nt-urgent',event:'nt-event'};
+  const tl = {notice:'공지',urgent:'긴급',event:'이벤트'};
+  NOTICES.forEach(n => {
+    const d = document.createElement('div'); d.className = 'nt-item';
+    d.innerHTML = `<span class="nt-type ${tm[n.type]}">${tl[n.type]}</span><div class="nt-body"><div class="nt-title">${n.title}</div><div class="nt-meta">${n.author} · ${n.date}</div></div>${n.unread?'<div class="nt-unread"></div>':''}`;
+    el.appendChild(d);
+  });
+}
+
+function renderRkBoard() {
+  const el = document.getElementById('rkBoard');
+  MEMBERS.forEach((m,i) => {
+    const me = m.name === ME.name;
+    const pcls = i===0?'p1':i===1?'p2':i===2?'p3':'';
+    const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1;
+    el.innerHTML += `<div class="rki${i===0?' top':''}"><div class="rkp ${pcls}">${medal}</div><div class="rka">${m.name[0]}</div><div class="rkn">${m.name}${me?'<span style="font-size:10px;color:var(--p);margin-left:4px;">(나)</span>':''}</div><div class="rks">${m.rp}점</div></div>`;
+  });
+}
+
+function renderAttendance() {
+  const g = document.getElementById('attGrid');
+  const days = ['월','화','수','목','금','토','일'];
+  const data = [['O','O','O','△','O','X','X'],['O','O','X','O','O','O','X'],['O','△','O','O','X','X','X'],['X','O','O','O','O','X','X'],['O','O','O','X','X','X','X']];
+  ['팩션원',...days].forEach(d => { const c=document.createElement('div');c.className='ac ah';c.textContent=d;g.appendChild(c); });
+  MEMBERS.forEach((m,i) => {
+    const nc=document.createElement('div');nc.className='ac an';nc.innerHTML=`<div class="uava" style="width:20px;height:20px;font-size:9px;">${m.name[0]}</div>${m.name}`;g.appendChild(nc);
+    data[i].forEach(d => { const c=document.createElement('div');c.className='ac '+(d==='O'?'ao':d==='△'?'at2':'ax');c.textContent=d==='O'?'✓':d==='△'?'지각':'-';g.appendChild(c); });
+  });
+  const sl=document.createElement('div');sl.className='ac ah an';sl.textContent='출근 인원';g.appendChild(sl);
+  [4,4,4,3,3,1,0].forEach(n => { const c=document.createElement('div');c.className='ac ah';c.textContent=n;g.appendChild(c); });
+}
+
+function renderRp() {
+  const tb = document.getElementById('rpBody');
+  RP_D.forEach(r => {
+    const sm={approved:['bbs','승인'],pending:['bbw','대기중']};
+    const [cls,lbl]=sm[r.status]||['bbg',r.status];
+    const canApprove = can('rp_approve');
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="font-family:var(--mono);color:var(--tx3);font-size:12px;">#${r.id}</td><td><b>${r.author}</b></td><td><span class="badge bbp">${r.type}</span></td><td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx2);">${r.content}</td><td style="font-size:12px;color:var(--tx3);font-family:var(--mono);">${r.time}</td><td><span class="badge ${cls}">${lbl}</span></td><td style="display:flex;gap:4px;">${r.status==='pending'&&canApprove?`<button class="btn p sm" style="padding:3px 8px;font-size:11px;" onclick="approveRp(this,${r.id})">승인</button>`:''}</td>`;
+    tb.appendChild(tr);
+  });
+}
+function approveRp(btn,id){btn.closest('tr').querySelector('.bbw').outerHTML='<span class="badge bbs">승인</span>';btn.remove();toast(`RP #${id} 승인 완료!`,'success');const b=document.getElementById('rpBadge');const n=parseInt(b.textContent)-1;if(n<=0)b.style.display='none';else b.textContent=n;}
+
+function renderTr() {
+  const tb = document.getElementById('trBody');
+  TR_D.forEach(r => {
+    const sm={approved:['bbs','승인'],pending:['bbw','감사대기']};
+    const [cls,lbl]=sm[r.status]||['bbg',r.status];
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="font-family:var(--mono);color:var(--tx3);font-size:12px;">#${r.id}</td><td><b>${r.author}</b></td><td>${r.type}</td><td>${r.peer}</td><td style="font-family:var(--mono);color:var(--p);font-weight:600;">${r.amount>0?'$'+r.amount.toLocaleString():'-'}</td><td>${r.item}</td><td style="font-size:12px;color:var(--tx3);font-family:var(--mono);">${r.time}</td><td><span class="badge ${cls}">${lbl}</span></td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function renderMembers() {
+  const el = document.getElementById('memberList');
+  MEMBERS.forEach(m => {
+    const d=document.createElement('div');d.className='mr';
+    const canMng = can('member_manage');
+    d.innerHTML=`<div class="ma">${m.name[0]}</div><div style="flex:1;"><div class="mn">${m.name}</div><div style="display:flex;align-items:center;gap:5px;"><div class="mrk">${m.rank}</div><span class="cls-badge cls-${m.cls}">${m.cls}</span></div></div><div class="mst"><div class="ms"><div class="v">${m.rp}</div><div class="l">RP</div></div><div class="ms"><div class="v">${m.trade}</div><div class="l">거래</div></div><div class="ms"><div class="v" style="color:${m.warn>0?'var(--danger)':'var(--success)'};">${m.warn}</div><div class="l">경고</div></div></div><div class="mact">${canMng?`<button class="btn g sm" style="padding:4px 8px;font-size:11px;">관리</button>`:''}</div>`;
+    el.appendChild(d);
+  });
+}
+
+function renderRanks() {
+  const el = document.getElementById('rankList');
+  RANKS_DATA.forEach(r => {
+    const d=document.createElement('div');d.className='rankrow';
+    const permLabels = r.perms.slice(0,3).map(p => `<span class="perm on">${PERMS[p]?.icon||''} ${PERMS[p]?.label||p}</span>`).join('');
+    const moreCount = r.perms.length > 3 ? `<span class="perm">+${r.perms.length-3}</span>` : '';
+    d.innerHTML=`<div class="rnum">${r.n}</div><div class="rname">${r.name}</div><span class="cls-badge cls-${r.cls}" style="margin-right:4px;">${r.cls}</span><div class="perms" style="flex:1;">${permLabels}${moreCount}</div>${ME.isFounder?`<button class="btn g sm" style="padding:4px 8px;font-size:11px;">수정</button>`:''}`;
+    el.appendChild(d);
+  });
+}
+
+function renderWarnings() {
+  const el = document.getElementById('warnList');
+  [{name:'김도현',lv:'경고 1회',reason:'무단이탈 (30분 이상)',date:'2025-06-01',by:'박민준 경감'},{name:'최지훈',lv:'주의',reason:'보고서 미제출 (3회)',date:'2025-05-28',by:'이서연 경위'}].forEach(w => {
+    const d=document.createElement('div');d.className='wc';
+    d.innerHTML=`<div class="wh"><span class="wn">${w.name}</span><span class="wlv">${w.lv}</span></div><div class="wr">${w.reason}</div><div class="wm">부여자: ${w.by} · ${w.date}</div>`;
+    el.appendChild(d);
+  });
+}
+
+function renderTx() {
+  const el = document.getElementById('txList');
+  TX_D.forEach(t => {
+    const d=document.createElement('div');d.className='txi';
+    d.innerHTML=`<div class="txic ${t.type}">${t.ic}</div><div class="txd"><div class="t">${t.t}</div><div class="d">${t.d}</div></div><div class="txa ${t.type}">${t.a}</div>`;
+    el.appendChild(d);
+  });
+}
+
+
+// ══════════════════════════════════════════════
+// 팩션원 탭
+// ══════════════════════════════════════════════
+function switchMemTab(tab) {
+  ['list','apply','resign'].forEach(t => {
+    document.getElementById('mtab-'+t)?.classList.toggle('on', t===tab);
+    const el = document.getElementById('mem-'+t);
+    if (el) el.style.display = t===tab ? 'block' : 'none';
+  });
+  if (tab==='apply' && !document.getElementById('applyList').children.length) renderApplyList();
+  if (tab==='resign' && !document.getElementById('resignList').children.length) renderResignList();
+}
+
+// ── 가입 신청 렌더 ──
+const APPLY_DATA = [
+  { id:'ap1', name:'정민호', avatar:'정', rank:'순경 지망', discord:'정민호#1234', msg:'안녕하세요! TURN CITY PD에서 꼭 활동하고 싶습니다. 경찰 RP에 관심이 많고, 매일 접속 가능합니다. 잘 부탁드립니다!', date:'2025-06-01' },
+  { id:'ap2', name:'이수아', avatar:'이', rank:'순경 지망', discord:'이수아#5678', msg:'FiveM 경험 3년 이상입니다. 이전 서버에서 경찰 직책 보유했습니다. 열심히 하겠습니다.', date:'2025-05-31' },
+];
+
+function renderApplyList() {
+  const el = document.getElementById('applyList');
+  if (!APPLY_DATA.length) {
+    el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--tx2);">📭 가입 신청이 없습니다.</div>'; return;
+  }
+  APPLY_DATA.forEach(a => {
+    const d = document.createElement('div');
+    d.className = 'apply-card';
+    d.innerHTML = `
+      <div class="ac-head">
+        <div class="ac-ava">${a.avatar}</div>
+        <div style="flex:1;">
+          <div class="ac-name">${a.name}</div>
+          <div class="ac-meta">Discord: ${a.discord} · ${a.date} 신청</div>
+        </div>
+        <span class="badge bbp">${a.rank}</span>
+      </div>
+      <div class="ac-msg">"${a.msg}"</div>
+      <div class="ac-actions">
+        <button class="btn p sm" onclick="approveApply('${a.id}','${a.name}')">✅ 승인</button>
+        <button class="btn d sm" onclick="rejectApply('${a.id}','${a.name}')">❌ 거절</button>
+        <button class="btn g sm" onclick="toast('Discord 메시지 기능은 Firebase 연동 후 지원됩니다.','info')">💬 쪽지</button>
+      </div>`;
+    el.appendChild(d);
+  });
+  document.getElementById('memberTotal').textContent = MEMBERS.length;
+}
+
+function approveApply(id, name) {
+  const idx = APPLY_DATA.findIndex(a => a.id === id);
+  if (idx > -1) {
+    APPLY_DATA.splice(idx, 1);
+    document.getElementById('applyList').innerHTML = '';
+    renderApplyList();
+    const badge = document.getElementById('applyBadge');
+    const n = parseInt(badge.textContent) - 1;
+    badge.textContent = n;
+    if (n <= 0) badge.style.display = 'none';
+    toast(`${name}님 가입 승인 완료! Discord 웹훅 전송됨.`, 'success');
+    sendWebhookEvent('member', `✅ **${name}**님이 팩션에 가입했습니다.`);
+  }
+}
+
+function rejectApply(id, name) {
+  const idx = APPLY_DATA.findIndex(a => a.id === id);
+  if (idx > -1) {
+    APPLY_DATA.splice(idx, 1);
+    document.getElementById('applyList').innerHTML = '';
+    renderApplyList();
+    const badge = document.getElementById('applyBadge');
+    const n = parseInt(badge.textContent) - 1;
+    badge.textContent = n;
+    if (n <= 0) badge.style.display = 'none';
+    toast(`${name}님 가입 거절 처리.`, 'info');
+  }
+}
+
+// ── 사직서 렌더 ──
+const RESIGN_DATA = [
+  { id:'rs1', name:'정성훈', avatar:'정', rank:'순경', reason:'현실 사정으로 인해 서버 활동이 어려워졌습니다. 팀원 여러분께 정말 감사했습니다. 건강하세요!', date:'2025-06-01' },
+];
+
+function renderResignList() {
+  const el = document.getElementById('resignList');
+  if (!RESIGN_DATA.length) {
+    el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--tx2);">📭 사직서가 없습니다.</div>'; return;
+  }
+  RESIGN_DATA.forEach(r => {
+    const d = document.createElement('div');
+    d.className = 'resign-card';
+    d.innerHTML = `
+      <div class="rc-head">
+        <div class="ac-ava" style="width:34px;height:34px;font-size:13px;">${r.avatar}</div>
+        <div>
+          <div class="rc-name">${r.name}</div>
+          <span class="cls-badge cls-${getMemberClass(r.name)}" style="font-size:10px;">${r.rank}</span>
+        </div>
+      </div>
+      <div class="rc-reason">"${r.reason}"</div>
+      <div class="rc-meta">제출일: ${r.date}</div>
+      <div class="rc-actions">
+        <button class="btn d sm" onclick="acceptResign('${r.id}','${r.name}')">✅ 수리 (강퇴)</button>
+        <button class="btn g sm" onclick="rejectResign('${r.id}','${r.name}')">↩️ 반려</button>
+      </div>`;
+    el.appendChild(d);
+  });
+}
+
+function getMemberClass(name) {
+  const m = MEMBERS.find(x => x.name === name);
+  return m ? m.cls : '일반직';
+}
+
+function acceptResign(id, name) {
+  const idx = RESIGN_DATA.findIndex(r => r.id === id);
+  if (idx > -1) {
+    RESIGN_DATA.splice(idx, 1);
+    document.getElementById('resignList').innerHTML = '';
+    renderResignList();
+    const badge = document.getElementById('resignBadge');
+    const n = parseInt(badge.textContent) - 1;
+    badge.textContent = n;
+    if (n <= 0) badge.style.display = 'none';
+    toast(`${name}님 사직서 수리. 퇴단 처리 완료.`, 'success');
+    sendWebhookEvent('member', `🚪 **${name}**님이 팩션에서 퇴단했습니다.`);
+  }
+}
+
+function rejectResign(id, name) {
+  const idx = RESIGN_DATA.findIndex(r => r.id === id);
+  if (idx > -1) {
+    RESIGN_DATA.splice(idx, 1);
+    document.getElementById('resignList').innerHTML = '';
+    renderResignList();
+    toast(`${name}님 사직서 반려.`, 'info');
+  }
+}
+
+// ══════════════════════════════════════════════
+// 승진/강등 로직
+// ══════════════════════════════════════════════
+let promoteSelectedMember = null;
+let promoteSelectedRank   = null;
+
+function openPromoteModal() {
+  if (!can('rank_manage')) { toast('권한이 없습니다.', 'error'); return; }
+  promoteSelectedMember = null;
+  promoteSelectedRank   = null;
+  document.getElementById('promotePreview').style.display = 'none';
+  document.getElementById('promoteConfirmBtn').disabled = true;
+  document.getElementById('promoteConfirmBtn').style.opacity = '.4';
+  renderPromoteMemberList();
+  renderPromoteRankList();
+  om('moPromote');
+}
+
+function renderPromoteMemberList() {
+  const el = document.getElementById('promoteMemberList');
+  el.innerHTML = '';
+  MEMBERS.forEach(m => {
+    const d = document.createElement('div');
+    d.className = 'promote-member-item' + (promoteSelectedMember?.name===m.name ? ' selected' : '');
+    d.innerHTML = `
+      <div class="ma" style="width:32px;height:32px;font-size:12px;">${m.name[0]}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;">${m.name}</div>
+        <div style="font-size:11px;color:var(--tx2);">${m.rank} · <span class="cls-badge cls-${m.cls}" style="font-size:10px;">${m.cls}</span></div>
+      </div>`;
+    d.onclick = () => {
+      promoteSelectedMember = m;
+      renderPromoteMemberList();
+      updatePromotePreview();
+    };
+    el.appendChild(d);
+  });
+}
+
+function renderPromoteRankList() {
+  const el = document.getElementById('promoteRankList');
+  el.innerHTML = '';
+  RANKS_DATA.forEach(r => {
+    const d = document.createElement('div');
+    d.className = 'rank-select-item' + (promoteSelectedRank?.name===r.name ? ' selected' : '');
+    d.innerHTML = `
+      <div class="rnum" style="width:24px;height:24px;font-size:11px;">${r.n}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;">${r.name}</div>
+        <span class="cls-badge cls-${r.cls}">${r.cls}</span>
+      </div>`;
+    d.onclick = () => {
+      promoteSelectedRank = r;
+      renderPromoteRankList();
+      updatePromotePreview();
+    };
+    el.appendChild(d);
+  });
+}
+
+function updatePromotePreview() {
+  const preview = document.getElementById('promotePreview');
+  const previewText = document.getElementById('promotePreviewText');
+  const btn = document.getElementById('promoteConfirmBtn');
+  if (!promoteSelectedMember || !promoteSelectedRank) {
+    preview.style.display = 'none';
+    btn.disabled = true; btn.style.opacity = '.4'; return;
+  }
+  const from = promoteSelectedMember.rank;
+  const to   = promoteSelectedRank.name;
+  const fromIdx = RANKS_DATA.findIndex(r => r.name === from);
+  const toIdx   = RANKS_DATA.findIndex(r => r.name === to);
+  const type = toIdx < fromIdx ? '🔺 승진' : toIdx > fromIdx ? '🔻 강등' : '🔄 직급 변경';
+  previewText.innerHTML = `<b>${promoteSelectedMember.name}</b> : ${from} → <b>${to}</b> (${type})`;
+  preview.style.display = 'block';
+  btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+}
+
+function confirmPromote() {
+  if (!promoteSelectedMember || !promoteSelectedRank) return;
+  const member = MEMBERS.find(m => m.name === promoteSelectedMember.name);
+  if (!member) return;
+
+  const oldRank = member.rank;
+  const newRank = promoteSelectedRank.name;
+  const fromIdx = RANKS_DATA.findIndex(r => r.name === oldRank);
+  const toIdx   = RANKS_DATA.findIndex(r => r.name === newRank);
+  const type    = toIdx < fromIdx ? '승진' : toIdx > fromIdx ? '강등' : '직급 변경';
+
+  // 직급 변경 적용
+  member.rank  = newRank;
+  member.cls   = promoteSelectedRank.cls;
+  member.perms = promoteSelectedRank.perms;
+
+  // 사이드바 자신이면 표시 업데이트
+  if (member.name === ME.name) {
+    ME.rankName  = newRank;
+    ME.rankClass = promoteSelectedRank.cls;
+    ME.perms     = promoteSelectedRank.perms;
+    renderUserInfo();
+    renderNav();
+    applyPermUI();
+  }
+
+  // 팩션원 목록 다시 렌더
+  document.getElementById('memberList').innerHTML = '';
+  renderMembers();
+
+  cm('moPromote');
+  toast(`${member.name}님 ${type} 완료: ${oldRank} → ${newRank}`, 'success');
+
+  // Discord 웹훅 전송
+  const emoji = type==='승진'?'🔺':type==='강등'?'🔻':'🔄';
+  sendWebhookEvent('member', `${emoji} **${member.name}**님이 **${oldRank}** → **${newRank}**으로 ${type}되었습니다.`);
+}
+
+// ══════════════════════════════════════════════
+// Discord 웹훅 실제 전송
+// ══════════════════════════════════════════════
+// 실제 배포 시 서버를 통해 전송 (CORS 우회)
+// 현재는 구조만 구현, API 연동 시 fetch 교체
+
+const WEBHOOK_URLS = {
+  rp:     '',   // 설정 페이지에서 입력
+  trade:  '',
+  warn:   '',
+  notice: '',
+  member: '',
+};
+
+async function sendWebhookEvent(type, message, extra={}) {
+  const url = WEBHOOK_URLS[type];
+  if (!url) return; // 웹훅 미설정
+
+  const colorMap = { rp:0x3B82F6, trade:0xF59E0B, warn:0xEF4444, notice:0x22C55E, member:0x8B5CF6 };
+
+  const payload = {
+    embeds: [{
+      color:       colorMap[type] || 0x2563EB,
+      description: message,
+      footer:      { text: `Turn City 인트라넷 · ${document.getElementById('sbFN').textContent}` },
+      timestamp:   new Date().toISOString(),
+      ...extra,
+    }],
+  };
+
+  try {
+    // 실제 배포: 서버 API를 통해 전송 (CORS 문제 우회)
+    // await fetch('/api/webhook/send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ url, payload }) });
+
+    // 현재: 직접 전송 시도 (로컬 테스트용)
+    await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  } catch(e) {
+    console.warn('[웹훅] 전송 실패:', e.message);
+  }
+}
+
+// 설정 페이지 웹훅 저장 시 메모리에 반영
+function saveWebhookUrl(type, url) {
+  WEBHOOK_URLS[type] = url;
+}
+
+// ── 모달 ──
+function om(id){document.getElementById(id).classList.add('open');}
+function cm(id){document.getElementById(id).classList.remove('open');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelectorAll('.mo.open').forEach(m=>m.classList.remove('open'));closeCz();}});
+document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+
+function submitRp(){if(!document.getElementById('rpCont').value){toast('내용을 입력해주세요.','error');return;}cm('moRp');toast('RP 보고서 제출 완료!','success');}
+function submitTr(){if(!document.getElementById('trPeer').value){toast('거래 상대방을 입력해주세요.','error');return;}cm('moTr');toast('거래 보고서 제출 완료!','success');}
+function submitNt(){
+  const t=document.getElementById('ntTitle').value;
+  if(!t){toast('제목을 입력해주세요.','error');return;}
+  cm('moNt');
+  const tm={공지:'notice',긴급:'urgent',이벤트:'event'};
+  NOTICES.unshift({type:tm[document.getElementById('ntType').value]||'notice',title:t,author:`${ME.rankName} ${ME.name}`,date:'방금',unread:false});
+  document.getElementById('ntList').innerHTML='';
+  renderNotices();
+  toast('공지가 등록되었습니다!','success');
+}
+
+// ── 클록/출근 ──
+function startClock(){setInterval(()=>{document.getElementById('clk').textContent=new Date().toLocaleTimeString('ko-KR',{hour12:false});},1000);}
+function toggleCI(){
+  const btn=document.getElementById('ciBtn'),st=document.getElementById('ciS'),now=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  if(!isCI){isCI=true;btn.textContent='퇴근하기';btn.classList.add('out');st.textContent=now+' 출근 ●';st.style.color='var(--success)';toast(`출근 완료! (${now})`,'success');}
+  else{isCI=false;btn.textContent='출근하기';btn.classList.remove('out');st.textContent='퇴근 완료';st.style.color='';toast('퇴근 완료. 수고하셨습니다! 🎉','success');}
+}
+
+// ── 화면 전환 ──
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+// ══════════════════════════════════════════════
+// 인증 & 가입 플로우
+// ══════════════════════════════════════════════
+
+// ─── 1. 인트라넷 접속 버튼 클릭 ───────────────
+function startLogin() {
+  const params = new URLSearchParams(window.location.search);
+  const token  = params.get('token');
+  const error  = params.get('error');
+
+  if (error) {
+    toast('Discord 로그인 실패: ' + error, 'error');
+    window.history.replaceState({}, '', window.location.pathname);
+    return;
+  }
+
+  if (token) {
+    handleOAuthCallback(token);
+    return;
+  }
+
+  // Discord OAuth 시작
+  window.location.href = API_URL + '/auth/discord';
+}
+
+// ─── 2. OAuth 콜백 처리 (token으로 Firebase 로그인) ──
+async function handleOAuthCallback(token) {
+  showScreen('screen-oauth');
+  setOAuthStatus('Discord 로그인 확인 중...', '잠시만 기다려주세요.');
+
+  try {
+    // Firebase custom token으로 로그인
+    const userCred = await signInWithCustomToken(auth, token);
+    const uid = userCred.user.uid;
+
+    // URL 파라미터 제거
+    window.history.replaceState({}, '', window.location.pathname);
+
+    setOAuthStatus('팩션 정보 확인 중...', '');
+
+    // Firestore에서 유저 팩션 확인
+    await checkUserFaction(uid);
+
+  } catch (err) {
+    console.error('[OAuth]', err);
+    setOAuthStatus('로그인 실패', err.message);
+    setTimeout(() => showScreen('screen-landing'), 2000);
+  }
+}
+
+// ─── 3. 유저 팩션 확인 ───────────────────────
+async function checkUserFaction(uid) {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', uid));
+
+    if (!userDoc.exists()) {
+      // 유저 문서 없음 → 가입 화면
+      showJoinScreen();
+      return;
+    }
+
+    const userData = userDoc.data();
+
+    if (!userData.factionId) {
+      // 팩션 미가입 → 가입 화면
+      showJoinScreen(userData);
+      return;
+    }
+
+    // 팩션 멤버 확인
+    const memberDoc = await getDoc(
+      doc(db, 'factions', userData.factionId, 'members', uid)
+    );
+
+    if (!memberDoc.exists()) {
+      // 팩션원 아님 (강퇴 등) → 가입 화면
+      showJoinScreen(userData);
+      return;
+    }
+
+    const memberData = memberDoc.data();
+
+    // 승인 대기 중
+    if (memberData.status === 'pending') {
+      showJoinScreen(userData, 'pending');
+      return;
+    }
+
+    // 팩션 정보 가져오기
+    const factionDoc = await getDoc(doc(db, 'factions', userData.factionId));
+    if (!factionDoc.exists()) {
+      showJoinScreen(userData);
+      return;
+    }
+
+    // ✅ 정상 입장
+    loadIntranet(factionDoc.data(), memberData, userData);
+
+  } catch (err) {
+    console.error('[checkUserFaction]', err);
+    toast('오류가 발생했습니다: ' + err.message, 'error');
+    showScreen('screen-landing');
+  }
+}
+
+// ─── 4. 인트라넷 로드 ────────────────────────
+function loadIntranet(factionData, memberData, userData) {
+  // ME 객체 세팅
+  ME = {
+    uid:       auth.currentUser?.uid || '',
+    name:      memberData.username || userData.username || '알 수 없음',
+    rankName:  memberData.rankName  || '직급 없음',
+    rankClass: memberData.rankClass || '일반직',
+    isFounder: memberData.isFounder || false,
+    perms:     memberData.perms     || [],
+    avatar:    memberData.avatar    || userData.avatar || '',
+    factionId: userData.factionId,
+  };
+
+  // 사이드바 팩션 정보
+  document.getElementById('sbFN').textContent = factionData.factionName || '';
+  document.getElementById('sbFT').textContent = factionData.factionType || '';
+  document.getElementById('czName').value = factionData.factionName || '';
+  document.getElementById('czTag').value  = factionData.factionType || '';
+
+  // 테마 적용
+  if (factionData.theme?.primaryColor) {
+    applyColor(factionData.theme.primaryColor, null);
+  }
+
+  // 유저 정보
+  renderUserInfo();
+  renderNav();
+  applyPermUI();
+  startClock();
+  renderRkBoard();
+  renderAttendance();
+  renderRp();
+  renderTr();
+  renderMembers();
+  renderRanks();
+  renderWarnings();
+  renderTx();
+  renderNotices();
+
+  showScreen('screen-app');
+  toast(`환영합니다, ${ME.name}님! 👋`, 'success');
+}
+
+// ─── 5. 가입 화면 ────────────────────────────
+let joinStep = 1;
+let joinDiscordUser = null;
+let joinFactionData = null;
+
+function showJoinScreen(userData = null, mode = null) {
+  joinStep = 1;
+  joinDiscordUser = userData;
+  joinFactionData = null;
+
+  if (mode === 'pending') {
+    showScreen('screen-join');
+    renderJoinPending();
+    return;
+  }
+
+  showScreen('screen-join');
+  renderJoinStep();
+}
+
+function renderJoinStep() {
+  const steps  = ['가입코드 입력', '정보 입력', '신청 완료'];
+  const labels = ['1/3 · 소속할 팩션의 가입코드를 입력하세요.', '2/3 · 기본 정보를 입력하세요.', '3/3 · 가입 신청이 완료되었습니다.'];
+
+  document.getElementById('joinTitle').textContent = 'Turn City 인트라넷 가입';
+  document.getElementById('joinSub').textContent   = '팩션 인트라넷에 가입하려면 팩션장에게 가입코드를 받아야 합니다.';
+
+  ['js1','js2','js3'].forEach((id, i) => {
+    document.getElementById(id).className = 'jstep' + (i < joinStep-1 ? ' done' : i === joinStep-1 ? ' cur' : '');
+  });
+  document.getElementById('jsLabel').textContent = labels[joinStep-1];
+
+  const body   = document.getElementById('joinBody');
+  const footer = document.getElementById('joinFooter');
+
+  if (joinStep === 1) {
+    // Discord 로그인 여부 확인
+    const user = auth.currentUser;
+    const userPreview = user ? `
+      <div class="join-user-preview">
+        <div class="jup-ava">
+          <img src="${joinDiscordUser?.avatar || ''}" onerror="this.style.display='none'">
+        </div>
+        <div>
+          <div class="jup-name">${joinDiscordUser?.username || user.displayName || '유저'}</div>
+          <div class="jup-id">Discord ID: ${user.uid}</div>
+        </div>
+        <span class="badge bbs" style="margin-left:auto;">로그인됨</span>
+      </div>` : '';
+
+    const loginBtn = !user ? `
+      <button class="join-discord-btn" onclick="window.location.href=API_URL+'/auth/discord'">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+        Discord로 로그인
+      </button>` : '';
+
+    body.innerHTML = `
+      ${userPreview}
+      ${loginBtn}
+      <div class="fi" style="margin-top:${user?'0':'14px'};">
+        <label>가입코드</label>
+        <div class="code-input-wrap">
+          <input class="inp" id="joinCode" maxlength="10" placeholder="팩션 가입코드 입력" oninput="this.value=this.value.toUpperCase();checkJoinCode(this.value)" ${!user?'disabled':''}>
+        </div>
+        <div id="factionFound" class="faction-found-card"></div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:6px;">💡 가입코드는 팩션장 또는 관리자에게 문의하세요.</div>
+      </div>`;
+
+    footer.innerHTML = `
+      <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px;">
+        <button class="btn g sm" onclick="showScreen('screen-landing')">← 돌아가기</button>
+        <button class="btn p sm" id="joinNextBtn" onclick="joinNext()" disabled style="opacity:.4;cursor:not-allowed;">다음 →</button>
+      </div>`;
+
+  } else if (joinStep === 2) {
+    body.innerHTML = `
+      <div style="background:var(--pbg);border:1px solid var(--pbd);border-radius:var(--r);padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+        <div style="width:10px;height:10px;border-radius:50%;background:${joinFactionData?.theme?.primaryColor||'var(--p)'};flex-shrink:0;"></div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--p);">${joinFactionData?.factionName || '팩션'}</div>
+          <div style="font-size:11px;color:var(--tx2);">${joinFactionData?.factionType || ''}</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="fi">
+          <label>게임 내 닉네임 <span style="color:var(--danger);">*</span></label>
+          <input class="inp" id="joinNick" placeholder="Turn City 게임 내 닉네임">
+        </div>
+        <div class="fi">
+          <label>고유번호 (ID) <span style="color:var(--danger);">*</span></label>
+          <input class="inp" id="joinUid" placeholder="게임 내 고유번호 (예: 12345)" type="number">
+          <div style="font-size:11px;color:var(--tx3);margin-top:3px;">F8 콘솔 또는 인게임 /id 명령어로 확인</div>
+        </div>
+        <div class="fi">
+          <label>자기소개 <span style="color:var(--danger);">*</span></label>
+          <textarea class="inp" id="joinBio" rows="4" placeholder="간단한 자기소개를 작성해주세요. (가입 동기, 플레이 스타일 등)"></textarea>
+        </div>
+        <div class="fi">
+          <label>Discord 닉네임</label>
+          <input class="inp" id="joinDiscordNick" value="${joinDiscordUser?.username || auth.currentUser?.displayName || ''}" readonly style="opacity:.6;">
+        </div>
+      </div>`;
+
+    footer.innerHTML = `
+      <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px;">
+        <button class="btn g sm" onclick="joinStep=1;renderJoinStep()">← 이전</button>
+        <button class="btn p sm" onclick="submitJoinApply()">가입 신청하기 →</button>
+      </div>`;
+
+  } else if (joinStep === 3) {
+    body.innerHTML = `
+      <div class="join-pending">
+        <div class="jp-icon">🎉</div>
+        <h3>가입 신청 완료!</h3>
+        <p><b>${joinFactionData?.factionName}</b>에<br>가입 신청이 접수되었습니다.<br><br>팩션 관리자가 신청을 검토 후<br>승인하면 인트라넷에 접속할 수 있습니다.</p>
+      </div>`;
+    footer.innerHTML = `
+      <div style="text-align:center;margin-top:8px;">
+        <button class="btn g sm" onclick="showScreen('screen-landing')">메인으로 돌아가기</button>
+      </div>`;
+  }
+}
+
+// 승인 대기 중 화면
+function renderJoinPending() {
+  ['js1','js2','js3'].forEach(id => {
+    document.getElementById(id).className = 'jstep done';
+  });
+  document.getElementById('jsLabel').textContent = '관리자 승인 대기 중';
+  document.getElementById('joinBody').innerHTML = `
+    <div class="join-pending">
+      <div class="jp-icon">⏳</div>
+      <h3>승인 대기 중</h3>
+      <p>가입 신청이 접수되어<br>관리자 승인을 기다리고 있습니다.<br><br>승인 완료 후 Discord DM으로<br>알림이 전송됩니다.</p>
+    </div>`;
+  document.getElementById('joinFooter').innerHTML = `
+    <div style="text-align:center;margin-top:8px;">
+      <button class="btn g sm" onclick="logout()">로그아웃</button>
+    </div>`;
+}
+
+// ─── 6. 가입코드 실시간 확인 ─────────────────
+let codeCheckTimer = null;
+
+async function checkJoinCode(val) {
+  const btn = document.getElementById('joinNextBtn');
+  const found = document.getElementById('factionFound');
+
+  if (!btn || !found) return;
+
+  found.className = 'faction-found-card';
+  btn.disabled = true;
+  btn.style.opacity = '.4';
+  btn.style.cursor = 'not-allowed';
+
+  if (val.length < 4) return;
+
+  clearTimeout(codeCheckTimer);
+  codeCheckTimer = setTimeout(async () => {
+    try {
+      // Firestore에서 가입코드로 팩션 조회
+      const snap = await getDocs(
+        query(collection(db, 'factions'), where('joinCode', '==', val))
+      );
+
+      if (snap.empty) {
+        found.className = 'faction-found-card show';
+        found.style.background = 'rgba(239,68,68,.08)';
+        found.style.borderColor = 'rgba(239,68,68,.2)';
+        found.innerHTML = `<span style="color:var(--danger);">❌ 유효하지 않은 가입코드입니다.</span>`;
+        return;
+      }
+
+      const fDoc = snap.docs[0];
+      joinFactionData = { id: fDoc.id, ...fDoc.data() };
+
+      found.className = 'faction-found-card show';
+      found.style.background = '';
+      found.style.borderColor = '';
+      found.innerHTML = `
+        <div class="ffc-color" style="background:${joinFactionData.theme?.primaryColor||'var(--p)'};">${joinFactionData.factionName?.[0]||'?'}</div>
+        <div>
+          <div class="ffc-name">${joinFactionData.factionName}</div>
+          <div class="ffc-type">${joinFactionData.factionType || ''} · 팩션원 ${joinFactionData.memberCount||0}명</div>
+        </div>
+        <span class="badge bbs" style="margin-left:auto;">확인됨</span>`;
+
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.cursor = 'pointer';
+
+    } catch (err) {
+      console.error('[checkJoinCode]', err);
+    }
+  }, 500);
+}
+
+function joinNext() {
+  if (!joinFactionData) { toast('가입코드를 먼저 확인해주세요.', 'error'); return; }
+  joinStep = 2;
+  renderJoinStep();
+}
+
+// ─── 7. 가입 신청 제출 ───────────────────────
+async function submitJoinApply() {
+  const nick = document.getElementById('joinNick')?.value.trim();
+  const uid2 = document.getElementById('joinUid')?.value.trim();
+  const bio  = document.getElementById('joinBio')?.value.trim();
+
+  if (!nick) { toast('닉네임을 입력해주세요.', 'error'); return; }
+  if (!uid2) { toast('고유번호를 입력해주세요.', 'error'); return; }
+  if (!bio)  { toast('자기소개를 입력해주세요.', 'error'); return; }
+  if (bio.length < 20) { toast('자기소개를 20자 이상 작성해주세요.', 'error'); return; }
+
+  const currentUser = auth.currentUser;
+  if (!currentUser) { toast('로그인이 필요합니다.', 'error'); return; }
+
+  try {
+    const applyBtn = document.querySelector('#joinFooter .btn.p');
+    if (applyBtn) { applyBtn.disabled = true; applyBtn.textContent = '신청 중...'; }
+
+    // Firestore - 팩션 members 컬렉션에 pending 상태로 저장
+    await setDoc(doc(db, 'factions', joinFactionData.id, 'members', currentUser.uid), {
+      userId:       currentUser.uid,
+      username:     nick,
+      discordName:  joinDiscordUser?.username || '',
+      avatar:       joinDiscordUser?.avatar   || '',
+      gameId:       uid2,
+      bio,
+      rankId:       null,
+      rankName:     '신청자',
+      rankClass:    '일반직',
+      isFounder:    false,
+      perms:        [],
+      status:       'pending',   // pending | approved | rejected
+      joinedAt:     serverTimestamp(),
+      rp_score:     0,
+      trade_count:  0,
+      warn_count:   0,
+    });
+
+    // 유저 문서에 factionId 기록 (pending)
+    await setDoc(doc(db, 'users', currentUser.uid), {
+      factionId:    joinFactionData.id,
+      factionStatus:'pending',
+      updatedAt:    serverTimestamp(),
+    }, { merge: true });
+
+    // 팩션 활동 로그
+    await addDoc(collection(db, 'factions', joinFactionData.id, 'activity_logs'), {
+      type:      'join_apply',
+      message:   `${nick}님이 가입 신청했습니다.`,
+      userId:    currentUser.uid,
+      createdAt: serverTimestamp(),
+    });
+
+    joinStep = 3;
+    renderJoinStep();
+
+  } catch (err) {
+    console.error('[submitJoinApply]', err);
+    toast('가입 신청 중 오류가 발생했습니다: ' + err.message, 'error');
+  }
+}
+
+// ─── 8. Firebase Auth 상태 감지 ──────────────
+// 페이지 로드 시 이미 로그인된 경우 자동 처리
+onAuthStateChanged(auth, async (user) => {
+  if (!user) return; // 비로그인 → 랜딩 유지
+
+  const currentScreen = document.querySelector('.screen.active')?.id;
+
+  // 이미 앱 화면이면 무시
+  if (currentScreen === 'screen-app') return;
+
+  // URL에 token 파라미터 있으면 OAuth 콜백 처리
+  const params = new URLSearchParams(window.location.search);
+  const token  = params.get('token');
+  if (token) {
+    handleOAuthCallback(token);
+    return;
+  }
+
+  // 이미 Firebase 로그인 상태 → 팩션 확인
+  if (currentScreen === 'screen-landing') {
+    // 자동 로그인은 안 함 (유저가 버튼 눌러야)
+  }
+});
+
+// 페이지 로드 시 OAuth 콜백 자동 감지
+window.addEventListener('load', () => {
+  const params = new URLSearchParams(window.location.search);
+  const token  = params.get('token');
+  const error  = params.get('error');
+
+  if (error) {
+    toast('Discord 로그인 실패: ' + error, 'error');
+    window.history.replaceState({}, '', window.location.pathname);
+    return;
+  }
+
+  if (token) {
+    handleOAuthCallback(token);
+  }
+});
+
+// ─── 유틸 ────────────────────────────────────
+function setOAuthStatus(title, sub) {
+  const t = document.getElementById('oauthTitle');
+  const s = document.getElementById('oauthSub');
+  if (t) t.textContent = title;
+  if (s) s.textContent = sub;
+}
+
+function goApp(){showScreen('screen-app');}
+function logout(){
+  signOut(auth).catch(()=>{});
+  toast('로그아웃 되었습니다.','info');
+  setTimeout(()=>showScreen('screen-landing'),700);
+}
+function toggleSb(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sbo').classList.toggle('open');}
+function closeSb(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sbo').classList.remove('open');}
+
+// ── 테마 ──
+function h2r(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+function darken(h,a=25){let[r,g,b]=h2r(h);return'#'+[r-a,g-a,b-a].map(x=>Math.max(0,x).toString(16).padStart(2,'0')).join('');}
+function lighten(h,a=25){let[r,g,b]=h2r(h);return'#'+[r+a,g+a,b+a].map(x=>Math.min(255,x).toString(16).padStart(2,'0')).join('');}
+function applyColor(hex,el){
+  if(!/^#[0-9A-Fa-f]{6}$/.test(hex))return;
+  const[r,g,b]=h2r(hex);
+  const ro=document.documentElement;
+  ro.style.setProperty('--p',hex);ro.style.setProperty('--pd',darken(hex));ro.style.setProperty('--pl',lighten(hex));
+  ro.style.setProperty('--pbg',`rgba(${r},${g},${b},.08)`);ro.style.setProperty('--pbd',`rgba(${r},${g},${b},.2)`);
+  document.getElementById('cpick').value=hex;document.getElementById('chex').value=hex;
+  document.querySelectorAll('.cpx').forEach(p=>p.classList.remove('on'));
+  if(el)el.classList.add('on');
+  else{const m=document.querySelector(`.cpx[data-c="${hex}"]`);if(m)m.classList.add('on');}
+}
+function applyType(t){
+  const pr=TYPES[t];if(!pr)return;
+  applyColor(pr.p,null);
+  document.getElementById('czName').value=pr.name;document.getElementById('czTag').value=pr.tag;
+  document.getElementById('sbFN').textContent=pr.name;document.getElementById('sbFT').textContent=pr.tag;
+  document.querySelectorAll('.tp').forEach(e=>e.classList.remove('on'));
+  document.getElementById(`tp-${t}`)?.classList.add('on');
+  toast(`${pr.tag} 프리셋 적용됨`,'success');
+}
+function toggleTheme(){
+  curTheme=curTheme==='light'?'dark':'light';
+  document.documentElement.setAttribute('data-theme',curTheme);
+  const ico=curTheme==='dark'?'☀️':'🌙';
+  ['thBtn','thBtn2'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=ico;});
+  document.querySelectorAll('.bgo').forEach(e=>e.classList.remove('on'));
+  document.getElementById(curTheme==='dark'?'bg-d':'bg-l')?.classList.add('on');
+}
+function setMode(m){
+  const ro=document.documentElement;
+  if(m==='dark'){curTheme='dark';ro.setAttribute('data-theme','dark');['thBtn','thBtn2'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='☀️';});}
+  else{curTheme='light';ro.setAttribute('data-theme','light');ro.style.removeProperty('--bg');['thBtn','thBtn2'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='🌙';});}
+  if(m==='blue')ro.style.setProperty('--bg','#EEF2FF');
+  document.querySelectorAll('.bgo').forEach(e=>e.classList.remove('on'));
+  document.getElementById(m==='light'?'bg-l':m==='dark'?'bg-d':'bg-b')?.classList.add('on');
+}
+function openCz(){document.getElementById('cz').classList.add('open');document.getElementById('czOv').classList.add('open');}
+function closeCz(){document.getElementById('cz').classList.remove('open');document.getElementById('czOv').classList.remove('open');}
+function saveCz(){toast('테마 저장 완료!','success');closeCz();}
+function resetCz(){applyColor('#2563EB',document.querySelector('.cpx'));document.documentElement.setAttribute('data-theme','light');document.documentElement.style.removeProperty('--bg');curTheme='light';toast('기본 테마로 초기화.','info');}
+function uploadLogo(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{document.getElementById('uAva').innerHTML=`<img src="${e.target.result}">`;toast('로고 업로드 완료!','success');};r.readAsDataURL(f);}
+
+function regenCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';const code='TC-'+Array.from({length:4},()=>c[Math.floor(Math.random()*c.length)]).join('');document.getElementById('joinCode').textContent=code;toast(`가입 코드 재발급: ${code}`,'success');}
+
+function toast(msg,type='info'){
+  const ic={success:'✅',error:'❌',info:'ℹ️'};
+  const w=document.getElementById('tw');const t=document.createElement('div');
+  t.className=`toast ${type}`;t.innerHTML=`<span>${ic[type]}</span><span>${msg}</span>`;
+  w.appendChild(t);
+  setTimeout(()=>{t.style.animation='tOut .2s ease forwards';setTimeout(()=>t.remove(),200);},3000);
+}
+
+// ══════════════════════════════════════════════
+// window 전역 노출
+// type="module" 스코프 함수를 인라인 onclick에서 쓸 수 있게
+// ══════════════════════════════════════════════
+window.showScreen           = showScreen;
+window.nav_to               = nav_to;
+window.toggleSb             = toggleSb;
+window.closeSb              = closeSb;
+window.toggleTheme          = toggleTheme;
+window.setMode              = setMode;
+window.startLogin           = startLogin;
+window.openOB               = openOB;
+window.goApp                = goApp;
+window.logout               = logout;
+window.checkJoinCode        = checkJoinCode;
+window.joinNext             = joinNext;
+window.submitJoinApply      = submitJoinApply;
+window.renderJoinPending    = renderJoinPending;
+window.obNext               = obNext;
+window.obPrev               = obPrev;
+window.renderOB             = renderOB;
+window.selectClass          = selectClass;
+window.toggleCI             = toggleCI;
+window.openCz               = openCz;
+window.closeCz              = closeCz;
+window.saveCz               = saveCz;
+window.resetCz              = resetCz;
+window.uploadLogo           = uploadLogo;
+window.applyColor           = applyColor;
+window.applyType            = applyType;
+window.switchMemTab         = switchMemTab;
+window.approveApply         = approveApply;
+window.rejectApply          = rejectApply;
+window.acceptResign         = acceptResign;
+window.rejectResign         = rejectResign;
+window.openPromoteModal     = openPromoteModal;
+window.confirmPromote       = confirmPromote;
+window.renderPromoteMemberList  = renderPromoteMemberList;
+window.renderPromoteRankList    = renderPromoteRankList;
+window.updatePromotePreview     = updatePromotePreview;
+window.om                   = om;
+window.cm                   = cm;
+window.submitRp             = submitRp;
+window.submitTr             = submitTr;
+window.submitNt             = submitNt;
+window.approveRp            = approveRp;
+window.openRankCreate       = openRankCreate;
+window.createRank           = createRank;
+window.regenCode            = regenCode;
+window.toast                = toast;
+</script>
+</body>
+</html>
