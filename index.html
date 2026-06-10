@@ -642,7 +642,7 @@ input,textarea,select{font-family:var(--font);}
       <h1 class="landing-h1">팩션 운영,<br>이제 한 곳에서.</h1>
       <p class="landing-desc">출근부부터 보고서, 금고, 팩션원 관리까지.<br>Turn City 팩션을 위한 전용 인트라넷.</p>
       <div id="landingBtns" class="landing-btns">
-        <button class="hbtn p" onclick="startLogin()">인트라넷 접속 →</button>
+        <button class="hbtn p" onclick="enterIntranet()">인트라넷 접속 →</button>
         <button class="hbtn o" onclick="openOB()">팩션 등록</button>
       </div>
       <div id="landingLoginInfo" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:14px 18px;margin-bottom:36px;display:none;align-items:center;gap:12px;max-width:340px;">
@@ -1107,7 +1107,22 @@ function startLogin() {
   const error = params.get('error');
   if (error) { toast('Discord 로그인 실패: '+error,'error'); window.history.replaceState({},'','/'); return; }
   if (token) { handleOAuthCallback(token); return; }
+  // 이미 로그인된 경우 → 바로 인트라넷 진입
+  if (auth.currentUser) { enterIntranet(); return; }
+  sessionStorage.removeItem('tc_mode');
   window.location.href = API_URL + '/auth/discord';
+}
+
+// 인트라넷 접속 (로그인 후 팩션 진입)
+async function enterIntranet() {
+  if (!auth.currentUser) {
+    sessionStorage.setItem('tc_mode','enter');
+    window.location.href = API_URL + '/auth/discord';
+    return;
+  }
+  showScreen('screen-oauth');
+  setOAuthStatus('인트라넷 접속 중...','');
+  await checkUserFaction(auth.currentUser.uid);
 }
 
 function startOBLogin() {
@@ -1961,7 +1976,6 @@ async function regenCode() {
 let obStep=1;
 const OB_STEPS=3;
 function openOB() {
-  // 로그인 안 됐으면 Discord OAuth 먼저
   if (!auth.currentUser) {
     sessionStorage.setItem('tc_mode','ob');
     window.location.href = API_URL + '/auth/discord';
@@ -2210,13 +2224,13 @@ function renderLanding() {
         <div style="width:24px;height:24px;border-radius:50%;background:#4F8EF7;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;">${name[0].toUpperCase()}</div>
         <span style="font-size:13px;font-weight:600;">${name}</span>
       </div>
-      <span class="lnav-link" onclick="startLogin()">인트라넷 접속</span>
+      <span class="lnav-link" onclick="enterIntranet()">인트라넷 접속</span>
       <span class="lnav-cta" onclick="openOB()">팩션 등록</span>
       <span class="lnav-link" style="color:var(--danger);font-size:12px;" onclick="doLogout()">로그아웃</span>
       <div class="thbtn" id="thBtn" onclick="toggleTheme()">🌙</div>
     `;
     if (btns) btns.innerHTML = `
-      <button class="hbtn p" onclick="startLogin()">인트라넷 접속 →</button>
+      <button class="hbtn p" onclick="enterIntranet()">인트라넷 접속 →</button>
       <button class="hbtn o" onclick="openOB()">팩션 등록</button>
     `;
   } else {
@@ -2226,14 +2240,14 @@ function renderLanding() {
       <div class="thbtn" id="thBtn" onclick="toggleTheme()">🌙</div>
     `;
     if (btns) btns.innerHTML = `
-      <button class="hbtn p" onclick="startLogin()">인트라넷 접속 →</button>
+      <button class="hbtn p" onclick="enterIntranet()">인트라넷 접속 →</button>
       <button class="hbtn o" onclick="openOB()">팩션 등록</button>
     `;
   }
 }
 
 Object.assign(window,{
-  showScreen, navTo, mobNav, toggleTheme, setMode, startLogin, startOBLogin, openOB, logout, doLogout, renderLanding, renderLanding,
+  showScreen, navTo, mobNav, toggleTheme, setMode, startLogin, startOBLogin, enterIntranet, openOB, logout, doLogout, renderLanding, renderLanding,
   checkJoinCode, joinNext, submitJoinApply, renderJoinPending,
   obNext, obPrev, renderOB, selectClass, openRankCreate, createRank,
   toggleCI, openCz, closeCz, saveCz, resetCz, applyColor, applyType,
