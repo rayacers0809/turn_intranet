@@ -721,9 +721,10 @@ input,textarea,select{font-family:var(--font);}
       <span class="sb-fn" id="sbFN">-</span>
       <span class="sb-ft" id="sbFT">-</span>
     </div>
-    <div class="sb-user">
+    <div class="sb-user" style="cursor:pointer;" onclick="om('moEditProfile')" title="프로필 편집">
       <div class="uava" id="uAva">?</div>
-      <div><div class="uname" id="uName">-</div><div class="urank" id="uRank">-</div><span class="ucls" id="uCls">-</span></div>
+      <div style="flex:1;"><div class="uname" id="uName">-</div><div class="urank" id="uRank">-</div><span class="ucls" id="uCls">-</span></div>
+      <span style="font-size:10px;color:rgba(255,255,255,.3);">✏️</span>
     </div>
     <nav class="sb-nav" id="sbNav"></nav>
     <div class="sb-foot">
@@ -1282,7 +1283,7 @@ async function submitJoinApply() {
 async function loadIntranet(factionData, memberData, userData) {
   ME = {
     uid:         auth.currentUser?.uid || '',
-    name:        memberData.username || userData.username || '알 수 없음',
+    name:        memberData.gameNick || memberData.username || userData.username || '알 수 없음',
     rankName:    memberData.rankName  || '직급 없음',
     rankClass:   memberData.rankClass || '일반직',
     isFounder:   memberData.isFounder || false,
@@ -1323,7 +1324,7 @@ async function loadIntranet(factionData, memberData, userData) {
         const el = document.getElementById('onlineCount');
         if (el) el.textContent = count;
       });
-    } catch(e) { console.warn('[온라인]', e); }
+    } catch(e) { console.error('[온라인 오류]', e.code, e.message); }
   }
 
   await loadAllData();
@@ -1389,7 +1390,8 @@ async function loadAllData() {
     updateRpZoneSelect();
     updateTrItemSelect();
     updateBadges();
-  } catch(err) { console.error('[loadAllData]',err); toast('데이터 로드 오류: '+err.message,'error'); }
+    console.log('[loadAllData] 완료 - 멤버:', approvedMembers.length, 'RP:', rpData.length, '거래:', trData.length);
+  } catch(err) { console.error('[loadAllData]',err.code, err.message); toast('데이터 로드 오류: '+err.message,'error'); }
 }
 
 // ══════════════════════════════════════════
@@ -1740,7 +1742,24 @@ async function submitTr() {
   if(!itemId){toast('물품을 선택해주세요.','error');return;}
   if(!buyerId){toast('구매자 고유번호를 입력해주세요.','error');return;}
   if(!peer){toast('구매자 닉네임을 입력해주세요.','error');return;}
-  if(!trLimitOk){toast('일일 한도를 초과했습니다.','error');return;}
+  // 한도 재확인
+  if(currentItem && document.getElementById('trBuyerId')?.value) {
+    const buyerId2 = document.getElementById('trBuyerId').value.trim();
+    const today2 = new Date().toISOString().split('T')[0];
+    try {
+      const limitSnap = await getDocs(query(
+        collection(db,'factions',ME.factionId,'reports_trade'),
+        where('buyerId','==',String(buyerId2)),
+        where('itemId','==',currentItem.id),
+        where('date','==',today2)
+      ));
+      const usedQty2 = limitSnap.docs.reduce((s,d)=>s+(d.data().qty||1),0);
+      if(usedQty2 >= currentItem.dailyLimit) {
+        toast(`일일 한도 초과! (${usedQty2}/${currentItem.dailyLimit}개)`,'error');
+        return;
+      }
+    } catch(e) {}
+  }
   if(!ME.factionId) return;
   const item=ITEMS.find(x=>x.id===itemId), amount=(item?.price||0)*qty, today=new Date().toISOString().split('T')[0];
   try {
@@ -2120,8 +2139,12 @@ async function toggleCI() {
     if(st){st.textContent=now+' 출근 ●';st.style.color='var(--success)';}
     toast(`출근 완료! (${now})`,'success');
     if(ME.factionId&&ME.uid){
-      try{ await setDoc(doc(db,'factions',ME.factionId,'attendance',`${ME.uid}_${today}`),{userId:ME.uid,username:ME.name,checkIn:serverTimestamp(),date:today,status:'O'},{merge:true}); }
-      catch(e){}
+      try{
+        await setDoc(doc(db,'factions',ME.factionId,'attendance',`${ME.uid}_${today}`),{
+          userId:ME.uid, username:ME.name, checkIn:serverTimestamp(), date:today, status:'O'
+        },{merge:true});
+        console.log('[출근] 저장 완료');
+      } catch(e){ console.error('[출근 저장 오류]',e.code, e.message); toast('출근 저장 실패: '+e.message,'error'); }
     }
   } else {
     isCI=false;
@@ -2129,8 +2152,11 @@ async function toggleCI() {
     if(st){st.textContent='퇴근 완료';st.style.color='';}
     toast('퇴근 완료. 수고하셨습니다! 🎉','success');
     if(ME.factionId&&ME.uid){
-      try{ await updateDoc(doc(db,'factions',ME.factionId,'attendance',`${ME.uid}_${today}`),{checkOut:serverTimestamp()}); }
-      catch(e){}
+      try{
+        await updateDoc(doc(db,'factions',ME.factionId,'attendance',`${ME.uid}_${today}`),{checkOut:serverTimestamp()});
+        console.log('[퇴근] 저장 완료');
+        await loadAllData();
+      } catch(e){ console.error('[퇴근 저장 오류]',e.code, e.message); toast('퇴근 저장 실패: '+e.message,'error'); }
     }
   }
 }
@@ -2247,7 +2273,7 @@ function toast(msg,type='info'){
 // ══════════════════════════════════════════
 // 모달
 // ══════════════════════════════════════════
-function om(id){document.getElementById(id)?.classList.add('open');}
+function om(id){ const el=document.getElementById(id); if(!el)return; el.classList.add('open'); if(id==='moEditProfile') openEditProfile(); }
 function cm(id){document.getElementById(id)?.classList.remove('open');}
 document.addEventListener('keydown',e=>{if(e.key==='Escape') document.querySelectorAll('.mo.open').forEach(m=>m.classList.remove('open'));});
 document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
@@ -2322,6 +2348,7 @@ window.addItem=addItem; window.deleteItem=deleteItem;
 window.switchSettingsTab=switchSettingsTab;
 window.openMobDrawer=openMobDrawer; window.closeMobDrawer=closeMobDrawer; window.syncMobUI=syncMobUI;
 window.om=om; window.cm=cm; window.toast=toast;
+window.saveProfile=saveProfile; window.openEditProfile=openEditProfile;
 
 // ══════════════════════════════════════════
 // 초기화
