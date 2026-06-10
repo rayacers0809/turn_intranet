@@ -1103,6 +1103,11 @@ function startLogin() {
   window.location.href = API_URL + '/auth/discord';
 }
 
+function startOBLogin() {
+  sessionStorage.setItem('tc_mode','ob');
+  window.location.href = API_URL + '/auth/discord';
+}
+
 async function handleOAuthCallback(token) {
   showScreen('screen-oauth');
   setOAuthStatus('Discord 로그인 확인 중...','');
@@ -1110,6 +1115,14 @@ async function handleOAuthCallback(token) {
     const userCred = await signInWithCustomToken(auth, token);
     try { window.history.replaceState({},'','/'); } catch(e){}
     setOAuthStatus('팩션 정보 확인 중...','');
+    const obMode = sessionStorage.getItem('tc_mode') === 'ob';
+    sessionStorage.removeItem('tc_mode');
+    if (obMode) {
+      // 팩션 창설 모드 - 기존 팩션 있어도 온보딩으로
+      showScreen('screen-landing');
+      obStep=1; renderOB(); om('moOB');
+      return;
+    }
     await checkUserFaction(userCred.user.uid);
   } catch(err) {
     console.error('[OAuth]', err);
@@ -1940,7 +1953,15 @@ async function regenCode() {
 // 온보딩 (팩션 창설)
 let obStep=1;
 const OB_STEPS=3;
-function openOB(){ obStep=1; renderOB(); om('moOB'); }
+function openOB() {
+  // 로그인 안 됐으면 Discord OAuth 먼저
+  if (!auth.currentUser) {
+    sessionStorage.setItem('tc_mode','ob');
+    window.location.href = API_URL + '/auth/discord';
+    return;
+  }
+  obStep=1; renderOB(); om('moOB');
+}
 
 // 온보딩 모달이 HTML에 없으면 동적 생성
 function ensureOBModal() {
@@ -1969,15 +1990,54 @@ function renderOB() {
   }
 }
 
-function obNext() {
-  if(obStep===OB_STEPS){
-    const code=(document.getElementById('obCode')?.value||'').trim();
-    if(!code){toast('인증 코드를 입력해주세요.','error');return;}
-    cm('moOB'); toast('팩션 인트라넷이 생성되었습니다! 🎉','success');
-    setTimeout(()=>{ const u=auth.currentUser; if(u) checkUserFaction(u.uid); },600);
-    return;
+async function obNext() {
+  if (obStep === 1) {
+    const fn = document.getElementById('obFN')?.value.trim();
+    if (!fn) { toast('팩션명을 입력해주세요.','error'); return; }
+    obStep++; renderOB(); return;
   }
-  if(obStep<OB_STEPS){obStep++;renderOB();}
+  if (obStep === 2) {
+    const rn = document.getElementById('obRN')?.value.trim();
+    if (!rn) { toast('팩션장 직급명을 입력해주세요.','error'); return; }
+    obStep++; renderOB(); return;
+  }
+  if (obStep === OB_STEPS) {
+    const code = (document.getElementById('obCode')?.value || '').trim();
+    const fn   = document.getElementById('obFN')?.value.trim() || '';
+    const ft   = document.getElementById('obFT')?.value || '기타';
+    const rn   = document.getElementById('obRN')?.value.trim() || '팩션장';
+    if (!code) { toast('인증 코드를 입력해주세요.','error'); return; }
+    if (!auth.currentUser) { toast('로그인이 필요합니다.','error'); return; }
+
+    const btn = document.getElementById('obNext');
+    if (btn) { btn.disabled=true; btn.textContent='처리 중...'; }
+
+    try {
+      // API 서버에 코드 검증 + 팩션 창설 요청
+      const res = await fetch(API_URL + '/api/intranet/verify', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, factionName: fn, factionType: ft, founderRankName: rn }),
+      });
+      const data = await res.json();
+
+      if (data.ok) {
+        cm('moOB');
+        toast('팩션 인트라넷이 생성되었습니다! 🎉','success');
+        setTimeout(async () => {
+          const u = auth.currentUser;
+          if (u) await checkUserFaction(u.uid);
+        }, 800);
+      } else {
+        toast('코드 오류: ' + (data.reason || '유효하지 않은 코드'),'error');
+        if (btn) { btn.disabled=false; btn.textContent='생성하기 ✨'; }
+      }
+    } catch(err) {
+      toast('오류: ' + err.message,'error');
+      if (btn) { btn.disabled=false; btn.textContent='생성하기 ✨'; }
+    }
+  }
 }
 function obPrev(){if(obStep>1){obStep--;renderOB();}}
 
@@ -2131,7 +2191,7 @@ document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',e=>{if(e.
 // window 전역 노출
 // ══════════════════════════════════════════
 Object.assign(window,{
-  showScreen, navTo, mobNav, toggleTheme, setMode, startLogin, openOB, logout, doLogout,
+  showScreen, navTo, mobNav, toggleTheme, setMode, startLogin, startOBLogin, openOB, logout, doLogout,
   checkJoinCode, joinNext, submitJoinApply, renderJoinPending,
   obNext, obPrev, renderOB, selectClass, openRankCreate, createRank,
   toggleCI, openCz, closeCz, saveCz, resetCz, applyColor, applyType,
