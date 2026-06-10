@@ -642,7 +642,8 @@ input,textarea,select{font-family:var(--font);}
       <h1 class="landing-h1">팩션 운영,<br>이제 한 곳에서.</h1>
       <p class="landing-desc">출근부부터 보고서, 금고, 팩션원 관리까지.<br>Turn City 팩션을 위한 전용 인트라넷.</p>
       <div id="landingBtns" class="landing-btns">
-        <!-- JS로 동적 렌더 -->
+        <button class="hbtn p" onclick="startLogin()">인트라넷 접속 →</button>
+        <button class="hbtn o" onclick="openOB()">팩션 등록</button>
       </div>
       <div id="landingLoginInfo" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:14px 18px;margin-bottom:36px;display:none;align-items:center;gap:12px;max-width:340px;">
         <div id="landingAva" style="width:40px;height:40px;border-radius:50%;background:var(--grad-p);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;overflow:hidden;flex-shrink:0;"></div>
@@ -2196,8 +2197,43 @@ document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',e=>{if(e.
 // ══════════════════════════════════════════
 // window 전역 노출
 // ══════════════════════════════════════════
+
+// ── 랜딩 로그인 상태 렌더 ─────────────────────
+function renderLanding() {
+  const user = auth.currentUser;
+  const navLinks = document.getElementById('lnavLinks');
+  const btns     = document.getElementById('landingBtns');
+  if (user) {
+    const name = user.displayName || '유저';
+    if (navLinks) navLinks.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 10px;background:var(--bg3);border:1px solid var(--bd);border-radius:20px;">
+        <div style="width:24px;height:24px;border-radius:50%;background:#4F8EF7;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;">${name[0].toUpperCase()}</div>
+        <span style="font-size:13px;font-weight:600;">${name}</span>
+      </div>
+      <span class="lnav-link" onclick="startLogin()">인트라넷 접속</span>
+      <span class="lnav-cta" onclick="openOB()">팩션 등록</span>
+      <span class="lnav-link" style="color:var(--danger);font-size:12px;" onclick="doLogout()">로그아웃</span>
+      <div class="thbtn" id="thBtn" onclick="toggleTheme()">🌙</div>
+    `;
+    if (btns) btns.innerHTML = `
+      <button class="hbtn p" onclick="startLogin()">인트라넷 접속 →</button>
+      <button class="hbtn o" onclick="openOB()">팩션 등록</button>
+    `;
+  } else {
+    if (navLinks) navLinks.innerHTML = `
+      <span class="lnav-link" onclick="startLogin()">로그인</span>
+      <span class="lnav-cta" onclick="openOB()">도입하기</span>
+      <div class="thbtn" id="thBtn" onclick="toggleTheme()">🌙</div>
+    `;
+    if (btns) btns.innerHTML = `
+      <button class="hbtn p" onclick="startLogin()">인트라넷 접속 →</button>
+      <button class="hbtn o" onclick="openOB()">팩션 등록</button>
+    `;
+  }
+}
+
 Object.assign(window,{
-  showScreen, navTo, mobNav, toggleTheme, setMode, startLogin, startOBLogin, openOB, logout, doLogout, renderLanding,
+  showScreen, navTo, mobNav, toggleTheme, setMode, startLogin, startOBLogin, openOB, logout, doLogout, renderLanding, renderLanding,
   checkJoinCode, joinNext, submitJoinApply, renderJoinPending,
   obNext, obPrev, renderOB, selectClass, openRankCreate, createRank,
   toggleCI, openCz, closeCz, saveCz, resetCz, applyColor, applyType,
@@ -2234,12 +2270,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Firebase Auth 상태 감지 → 랜딩 UI 업데이트
-  onAuthStateChanged(auth, async user => {
-    renderLanding();
-  });
+  onAuthStateChanged(auth, () => { renderLanding(); });
 
-  // 초기 렌더 (로그인 상태 모름 → 비로그인 UI 먼저)
-  renderLanding();
+  // 초기 렌더
+  setTimeout(renderLanding, 100);
 });
 
 </script>
