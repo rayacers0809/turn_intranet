@@ -429,6 +429,19 @@ input,textarea,select{font-family:var(--font);}
 </div>
 
 <!-- MODALS -->
+<!-- ── 프로필 편집 모달 ── -->
+<div class="mo" id="moEditProfile">
+<div class="md">
+  <div class="mh"><h2>✏️ 프로필 편집</h2><p>인트라넷에서 표시될 정보를 수정하세요.</p></div>
+  <div style="display:flex;flex-direction:column;gap:13px;">
+    <div class="fi"><label>게임 내 닉네임</label><input class="inp" id="editNick" placeholder="Turn City 게임 내 닉네임"><div style="font-size:11px;color:var(--tx3);margin-top:3px;">사이드바와 보고서에 표시됩니다.</div></div>
+    <div class="fi"><label>고유번호 (ID)</label><input class="inp" id="editGameId" placeholder="인게임 고유번호" type="number"></div>
+    <div class="fi"><label>자기소개</label><textarea class="inp" id="editBio" rows="3" placeholder="자기소개..."></textarea></div>
+  </div>
+  <div class="mf"><button class="btn g sm" onclick="cm('moEditProfile')">취소</button><button class="btn p sm" onclick="saveProfile()">저장 →</button></div>
+</div>
+</div>
+
 <!-- RP 보고서 -->
 <div class="mo" id="moRp">
 <div class="md">
@@ -897,12 +910,16 @@ input,textarea,select{font-family:var(--font);}
                 <div class="sr"><div class="si"><div class="sl2">팩션명</div></div><input class="inp" id="settingFN" style="width:160px;padding:7px 10px;"></div>
                 <div class="sr"><div class="si"><div class="sl2">팩션 구분</div></div><select class="inp" id="settingFT" style="width:130px;padding:7px 10px;"><option>경찰 / 공무원</option><option>EMS / 소방</option><option>기업 / 회사</option><option>조직 / 마피아</option><option>갱단 / 범죄조직</option><option>기타</option></select></div>
                 <div class="sr"><div class="si"><div class="sl2">가입 코드</div><div class="sd">팩션원 가입 시 사용</div></div><div style="display:flex;gap:6px;align-items:center;"><span style="font-family:var(--mono);font-size:13px;color:var(--p);font-weight:700;" id="joinCode">-</span><button class="btn g sm" onclick="regenCode()">재발급</button></div></div>
+                <div style="margin-top:12px;"><button class="btn p" onclick="saveFactionInfo()">💾 팩션 정보 저장</button></div>
               </div>
               <div class="card" style="margin-top:16px;">
                 <div class="ct" style="margin-bottom:14px;"><span class="ti">🔧</span>기능 설정</div>
-                <div class="sr"><div class="si"><div class="sl2">RP 보고서 승인 필요</div><div class="sd">승인 후 점수 반영</div></div><div class="toggle on" id="rpApprovalToggle" onclick="this.classList.toggle('on')"></div></div>
-                <div class="sr"><div class="si"><div class="sl2">거래 감사 시스템</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
-                <div class="sr"><div class="si"><div class="sl2">출근부 자동 집계</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+                <div class="sr"><div class="si"><div class="sl2">RP 보고서 활성화</div><div class="sd">공무원/조직 팩션 RP 보고서 사용</div></div><div class="toggle on" id="togRpEnabled" onclick="this.classList.toggle('on')"></div></div>
+                <div class="sr"><div class="si"><div class="sl2">RP 보고서 승인 필요</div><div class="sd">승인 후 점수 반영</div></div><div class="toggle on" id="togRpApproval" onclick="this.classList.toggle('on')"></div></div>
+                <div class="sr"><div class="si"><div class="sl2">거래 보고서 활성화</div><div class="sd">기업/조직 팩션 거래 보고서 사용</div></div><div class="toggle on" id="togTradeEnabled" onclick="this.classList.toggle('on')"></div></div>
+                <div class="sr"><div class="si"><div class="sl2">거래 감사 시스템</div><div class="sd">거래 승인 후 처리</div></div><div class="toggle on" id="togTradeAudit" onclick="this.classList.toggle('on')"></div></div>
+                <div class="sr"><div class="si"><div class="sl2">출근부 자동 집계</div></div><div class="toggle on" id="togAttendance" onclick="this.classList.toggle('on')"></div></div>
+                <div style="margin-top:12px;"><button class="btn p" onclick="saveSettings()">💾 기능 설정 저장</button></div>
               </div>
             </div>
             <div>
@@ -1302,6 +1319,12 @@ async function loadIntranet(factionData, memberData, userData) {
   const czt = document.getElementById('czTag');  if(czt) czt.value = ft;
   const sfn = document.getElementById('settingFN'); if(sfn) sfn.value = fn;
   if (factionData.theme?.primaryColor) applyColor(factionData.theme.primaryColor, null);
+  // 설정 토글 로드
+  loadSettingsToggles(factionData.settings || {});
+  // 팩션 설정 구분 select
+  const sft = document.getElementById('settingFT');
+  if(sft) sft.value = factionData.factionType || '기타';
+
   // 웹훅 로드
   const wh = factionData.webhooks || {};
   ['rp','trade','warn','notice','member'].forEach(k => { const el=document.getElementById('wh'+k.charAt(0).toUpperCase()+k.slice(1)); if(el && wh[k]) el.value=wh[k]; });
@@ -2137,34 +2160,66 @@ function obPrev(){if(obStep>1){obStep--;renderOB();}}
 // 출근/퇴근
 // ══════════════════════════════════════════
 let ciStartTime = null;
+
 async function toggleCI() {
-  const btn=document.getElementById('ciBtn'), st=document.getElementById('ciS');
-  const now=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-  const today=new Date().toISOString().split('T')[0];
-  if(!isCI){
-    isCI=true; ciStartTime=Date.now();
-    if(btn){btn.textContent='퇴근하기';btn.classList.add('out');}
-    if(st){st.textContent=now+' 출근 ●';st.style.color='var(--success)';}
-    toast(`출근 완료! (${now})`,'success');
-    if(ME.factionId&&ME.uid){
-      try{
-        await setDoc(doc(db,'factions',ME.factionId,'attendance',`${ME.uid}_${today}`),{
-          userId:ME.uid, username:ME.name, checkIn:serverTimestamp(), date:today, status:'O'
-        },{merge:true});
-        console.log('[출근] 저장 완료');
-      } catch(e){ console.error('[출근 저장 오류]',e.code, e.message); toast('출근 저장 실패: '+e.message,'error'); }
+  const btn = document.getElementById('ciBtn');
+  const st  = document.getElementById('ciS');
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const timeStr = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  const attDocId = `${ME.uid}_${today}`;
+
+  if (!isCI) {
+    // 출근
+    isCI = true; ciStartTime = Date.now();
+    if(btn){ btn.textContent='퇴근하기'; btn.classList.add('out'); }
+    if(st){ st.textContent=timeStr+' 출근 ●'; st.style.color='var(--success)'; }
+    toast(`출근 완료! (${timeStr})`,'success');
+    if(ME.factionId && ME.uid) {
+      try {
+        // 기존 기록에 sessions 배열로 추가
+        const attRef = doc(db,'factions',ME.factionId,'attendance',attDocId);
+        const attDoc = await getDoc(attRef);
+        if(attDoc.exists()) {
+          // 기존 기록 있으면 새 세션 추가
+          const sessions = attDoc.data().sessions || [];
+          sessions.push({ checkIn: now.toISOString(), checkOut: null });
+          await updateDoc(attRef, { sessions, status:'O', username:ME.name });
+        } else {
+          // 없으면 새로 생성
+          await setDoc(attRef, {
+            userId:ME.uid, username:ME.name, date:today, status:'O',
+            sessions:[{ checkIn:now.toISOString(), checkOut:null }],
+            totalMinutes:0,
+          });
+        }
+      } catch(e){ console.error('[출근 오류]',e.code,e.message); toast('출근 저장 실패: '+e.message,'error'); }
     }
   } else {
-    isCI=false;
-    if(btn){btn.textContent='출근하기';btn.classList.remove('out');}
-    if(st){st.textContent='퇴근 완료';st.style.color='';}
-    toast('퇴근 완료. 수고하셨습니다! 🎉','success');
-    if(ME.factionId&&ME.uid){
-      try{
-        await updateDoc(doc(db,'factions',ME.factionId,'attendance',`${ME.uid}_${today}`),{checkOut:serverTimestamp()});
-        console.log('[퇴근] 저장 완료');
+    // 퇴근
+    isCI = false;
+    const elapsed = ciStartTime ? Math.floor((Date.now()-ciStartTime)/60000) : 0;
+    if(btn){ btn.textContent='출근하기'; btn.classList.remove('out'); }
+    if(st){ st.textContent=`퇴근 완료 (${elapsed}분 근무)`; st.style.color=''; }
+    toast(`퇴근 완료! 오늘 ${elapsed}분 근무 🎉`,'success');
+    if(ME.factionId && ME.uid) {
+      try {
+        const attRef = doc(db,'factions',ME.factionId,'attendance',attDocId);
+        const attDoc = await getDoc(attRef);
+        if(attDoc.exists()) {
+          const sessions = attDoc.data().sessions || [];
+          // 마지막 열린 세션 닫기
+          const lastIdx = sessions.map(s=>s.checkOut).lastIndexOf(null);
+          if(lastIdx !== -1) sessions[lastIdx].checkOut = now.toISOString();
+          // 총 근무시간 계산
+          const total = sessions.reduce((sum,s)=>{
+            if(!s.checkIn||!s.checkOut) return sum;
+            return sum + Math.floor((new Date(s.checkOut)-new Date(s.checkIn))/60000);
+          },0);
+          await updateDoc(attRef, { sessions, totalMinutes:total, status:'O' });
+        }
         await loadAllData();
-      } catch(e){ console.error('[퇴근 저장 오류]',e.code, e.message); toast('퇴근 저장 실패: '+e.message,'error'); }
+      } catch(e){ console.error('[퇴근 오류]',e.code,e.message); toast('퇴근 저장 실패: '+e.message,'error'); }
     }
   }
 }
@@ -2390,8 +2445,56 @@ async function saveProfile() {
   } catch(err){ toast('저장 실패: '+err.message,'error'); }
 }
 
+
+// ── 팩션 정보 저장 ────────────────────────────
+async function saveFactionInfo() {
+  if(!ME.factionId) return;
+  const fn = document.getElementById('settingFN')?.value.trim();
+  const ft = document.getElementById('settingFT')?.value;
+  if(!fn) { toast('팩션명을 입력해주세요.','error'); return; }
+  try {
+    await updateDoc(doc(db,'factions',ME.factionId),{ factionName:fn, factionType:ft });
+    ME.factionType = ft;
+    ['sbFN','mobDrFN'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=fn; });
+    ['sbFT','mobDrFT'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=ft; });
+    renderNav(); // 팩션 유형 바뀌면 메뉴 재렌더
+    toast('팩션 정보 저장 완료!','success');
+  } catch(err){ toast('저장 실패: '+err.message,'error'); }
+}
+
+// ── 기능 설정 저장 ────────────────────────────
+async function saveSettings() {
+  if(!ME.factionId) return;
+  try {
+    await updateDoc(doc(db,'factions',ME.factionId),{
+      'settings.rpEnabled':      document.getElementById('togRpEnabled')?.classList.contains('on'),
+      'settings.rpApprovalRequired': document.getElementById('togRpApproval')?.classList.contains('on'),
+      'settings.tradeEnabled':   document.getElementById('togTradeEnabled')?.classList.contains('on'),
+      'settings.tradeAudit':     document.getElementById('togTradeAudit')?.classList.contains('on'),
+      'settings.attendanceAuto': document.getElementById('togAttendance')?.classList.contains('on'),
+    });
+    toast('기능 설정 저장 완료!','success');
+  } catch(err){ toast('저장 실패: '+err.message,'error'); }
+}
+
+// ── 설정 토글 초기값 로드 ─────────────────────
+function loadSettingsToggles(settings) {
+  if(!settings) return;
+  const setToggle = (id, val) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(val) el.classList.add('on'); else el.classList.remove('on');
+  };
+  setToggle('togRpEnabled',      settings.rpEnabled      !== false);
+  setToggle('togRpApproval',     settings.rpApprovalRequired !== false);
+  setToggle('togTradeEnabled',   settings.tradeEnabled   !== false);
+  setToggle('togTradeAudit',     settings.tradeAudit     !== false);
+  setToggle('togAttendance',     settings.attendanceAuto !== false);
+}
+
 window.om=om; window.cm=cm; window.toast=toast;
 window.saveProfile=saveProfile; window.openEditProfile=openEditProfile;
+window.saveFactionInfo=saveFactionInfo; window.saveSettings=saveSettings; window.loadSettingsToggles=loadSettingsToggles;
 
 // ══════════════════════════════════════════
 // 초기화
