@@ -1309,6 +1309,23 @@ async function loadIntranet(factionData, memberData, userData) {
   renderUserInfo(); renderNav(); applyPermUI(); startClock();
   showScreen('screen-app');
   toast(`환영합니다, ${ME.name}님! 👋`, 'success');
+
+  // Realtime Database - 온라인 현황
+  if (ME.factionId && ME.uid) {
+    try {
+      const { set, onDisconnect, onValue, ref: rref } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
+      const onlineRef = rref(rtdb, `online/${ME.factionId}/${ME.uid}`);
+      await set(onlineRef, { name: ME.name, ts: Date.now() });
+      onDisconnect(onlineRef).remove();
+      const countRef = rref(rtdb, `online/${ME.factionId}`);
+      onValue(countRef, snap => {
+        const count = snap.exists() ? Object.keys(snap.val()||{}).length : 0;
+        const el = document.getElementById('onlineCount');
+        if (el) el.textContent = count;
+      });
+    } catch(e) { console.warn('[온라인]', e); }
+  }
+
   await loadAllData();
 }
 
