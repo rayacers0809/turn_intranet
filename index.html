@@ -633,7 +633,7 @@ input,textarea,select{font-family:var(--font);}
     </div>
     <div class="lnav-links" id="lnavLinks">
       <!-- JS로 동적 렌더 -->
-      <div class="thbtn" onclick="toggleTheme()" id="thBtn">🌙</div>
+      <div class="thbtn" id="thBtn">🌙</div>
     </div>
   </nav>
   <div class="landing-wrap">
@@ -676,7 +676,7 @@ input,textarea,select{font-family:var(--font);}
     <div class="mh-logo">TC</div>
     <div class="mh-title" id="mobTitle">대시보드</div>
     <div style="display:flex;align-items:center;gap:8px;">
-      <div class="ib" onclick="toggleTheme()" style="font-size:15px;" id="thBtn3">🌙</div>
+      <div class="ib" id="thBtn3" style="font-size:15px;">🌙</div>
       <div class="mh-ava" id="mobAva" onclick="openMobDrawer()">?</div>
     </div>
   </header>
@@ -737,7 +737,7 @@ input,textarea,select{font-family:var(--font);}
       <div class="tbr">
         <div class="ib" onclick="toast('알림','info')">🔔</div>
         <div class="tbsep"></div>
-        <div class="thbtn" onclick="toggleTheme()" id="thBtn2">🌙</div>
+        <div class="thbtn" id="thBtn2">🌙</div>
         <div class="ib" onclick="openCz()">🎨</div>
       </div>
     </header>
@@ -2216,21 +2216,30 @@ Object.assign(window,{
 // ══════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
   startClock();
-  renderLanding(); // 초기 랜딩 렌더
-  // URL 파라미터 체크
-  const params=new URLSearchParams(window.location.search);
-  const token=params.get('token'), error=params.get('error');
-  if(error){ toast('Discord 로그인 실패: '+error,'error'); try{window.history.replaceState({},'','/');}catch(e){} }
-  else if(token){ handleOAuthCallback(token); }
-  // Firebase Auth 상태 감지
-  onAuthStateChanged(auth, async user=>{
-    renderLanding(); // 로그인 상태 변경 시 랜딩 UI 업데이트
-    if (!user) return;
-    const params2 = new URLSearchParams(window.location.search);
-    if (!params2.get('token')) {
-      // 이미 로그인된 상태로 랜딩 접속 → 그냥 랜딩 유지 (유저가 버튼 눌러야 진입)
-    }
+
+  // 테마 버튼 이벤트 (onclick 대신 addEventListener)
+  ['thBtn','thBtn2','thBtn3'].forEach(id => {
+    document.getElementById(id)?.addEventListener('click', toggleTheme);
   });
+
+  // URL 파라미터 체크
+  const params = new URLSearchParams(window.location.search);
+  const token  = params.get('token');
+  const error  = params.get('error');
+  if (error) {
+    toast('Discord 로그인 실패: '+error,'error');
+    try{ window.history.replaceState({},'','/'); }catch(e){}
+  } else if (token) {
+    handleOAuthCallback(token);
+  }
+
+  // Firebase Auth 상태 감지 → 랜딩 UI 업데이트
+  onAuthStateChanged(auth, async user => {
+    renderLanding();
+  });
+
+  // 초기 렌더 (로그인 상태 모름 → 비로그인 UI 먼저)
+  renderLanding();
 });
 
 </script>
