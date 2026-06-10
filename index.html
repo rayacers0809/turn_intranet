@@ -121,7 +121,7 @@ input,textarea,select{font-family:var(--font);}
 .ni.locked{opacity:.3;cursor:not-allowed;}
 .ni.locked:hover{background:none;}
 .ni-ic{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
-.ni-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;font-family:var(--mono);}
+.ni-badge{margin-left:auto;width:8px;height:8px;background:var(--danger);border-radius:50%;flex-shrink:0;}
 .ni-lock{margin-left:auto;font-size:11px;color:rgba(255,255,255,.2);}
 .sb-foot{padding:10px;border-top:1px solid rgba(255,255,255,.05);}
 .main{margin-left:240px;flex:1;min-height:100vh;display:flex;flex-direction:column;}
@@ -1605,8 +1605,15 @@ function updateTrItemSelect() {
 }
 
 function updateBadges() {
-  const ab=document.getElementById('applyBadge'); if(ab) ab.textContent=APPLY_DATA.length;
-  const rb=document.getElementById('resignBadge'); if(rb) rb.textContent=RESIGN_DATA.length;
+  const ab=document.getElementById('applyBadge');
+  if(ab) ab.style.display = APPLY_DATA.length > 0 ? 'inline-block' : 'none';
+  const rb=document.getElementById('resignBadge');
+  if(rb) rb.style.display = RESIGN_DATA.length > 0 ? 'inline-block' : 'none';
+  // 사이드바 배지도 점으로
+  ['ntBadge','rpBadge','wBadge'].forEach(id => {
+    const el=document.getElementById(id);
+    if(el) el.style.display='none'; // 일단 숨김, 실제 데이터 있으면 표시
+  });
 }
 
 // ══════════════════════════════════════════
