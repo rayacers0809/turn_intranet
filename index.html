@@ -1108,15 +1108,13 @@ function startLogin() {
   if (error) { toast('Discord 로그인 실패: '+error,'error'); try{window.history.replaceState({},'','/');}catch(e){} return; }
   if (token) { handleOAuthCallback(token); return; }
   if (auth.currentUser) { toast('이미 로그인되어 있습니다.','info'); return; }
-  sessionStorage.setItem('tc_mode','login');
-  window.location.href = API_URL + '/auth/discord';
+  window.location.href = API_URL + '/auth/discord?mode=login';
 }
 
 // 인트라넷 접속 (로그인 후 팩션 진입)
 async function enterIntranet() {
   if (!auth.currentUser) {
-    sessionStorage.setItem('tc_mode','enter');
-    window.location.href = API_URL + '/auth/discord';
+    window.location.href = API_URL + '/auth/discord?mode=enter';
     return;
   }
   showScreen('screen-oauth');
@@ -1133,18 +1131,34 @@ async function handleOAuthCallback(token) {
   showScreen('screen-oauth');
   setOAuthStatus('Discord 로그인 확인 중...','');
   try {
+    // mode를 replaceState 전에 읽기
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode') || 'login';
+
     const userCred = await signInWithCustomToken(auth, token);
     try { window.history.replaceState({},'','/'); } catch(e){}
-    setOAuthStatus('팩션 정보 확인 중...','');
-    const obMode = sessionStorage.getItem('tc_mode') === 'ob';
-    sessionStorage.removeItem('tc_mode');
-    if (obMode) {
-      // 팩션 창설 모드 - 기존 팩션 있어도 온보딩으로
+
+    // Firestore에서 Discord 프로필 로드
+    try {
+      const uDoc = await getDoc(doc(db, 'users', userCred.user.uid));
+      if (uDoc.exists()) window._discordProfile = uDoc.data();
+    } catch(e) {}
+
+    if (mode === 'enter') {
+      // 인트라넷 접속
+      setOAuthStatus('팩션 정보 확인 중...','');
+      await checkUserFaction(userCred.user.uid);
+    } else if (mode === 'ob') {
+      // 팩션 등록
       showScreen('screen-landing');
-      obStep=1; renderOB(); om('moOB');
-      return;
+      renderLanding();
+      setTimeout(() => { obStep=1; renderOB(); om('moOB'); }, 300);
+    } else {
+      // 로그인만 → 랜딩 복귀
+      showScreen('screen-landing');
+      renderLanding();
+      toast('로그인 완료! 👋','success');
     }
-    await checkUserFaction(userCred.user.uid);
   } catch(err) {
     console.error('[OAuth]', err);
     setOAuthStatus('로그인 실패', err.message);
@@ -1976,8 +1990,7 @@ let obStep=1;
 const OB_STEPS=3;
 function openOB() {
   if (!auth.currentUser) {
-    sessionStorage.setItem('tc_mode','ob');
-    window.location.href = API_URL + '/auth/discord';
+    window.location.href = API_URL + '/auth/discord?mode=ob';
     return;
   }
   obStep=1; renderOB(); om('moOB');
