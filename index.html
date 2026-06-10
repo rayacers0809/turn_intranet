@@ -1417,7 +1417,12 @@ function renderDashboard(membersSnap, rpData, logData) {
   // 순위
   const rkBoard = document.getElementById('rkBoard');
   if (rkBoard) {
-    const sorted = [...membersSnap].sort((a,b) => (b.data().rp_score||0)-(a.data().rp_score||0));
+    const isCo = isCorp();
+    const sorted = [...membersSnap].sort((a,b) => {
+      const va = isCo ? (b.data().trade_count||0) : (b.data().rp_score||0);
+      const vb = isCo ? (a.data().trade_count||0) : (a.data().rp_score||0);
+      return va - vb;
+    });
     if (!sorted.length) { rkBoard.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3);">팩션원이 없습니다.</div>'; }
     else {
       rkBoard.innerHTML='';
@@ -1476,8 +1481,11 @@ function renderAttendance(members, attData) {
     week.forEach(date => {
       const att=attData.find(a=>a.userId===m.userId&&a.date===date);
       const c=document.createElement('div');
-      if(att){ c.className='ac ao'; c.textContent='✓'; }
-      else{ c.className='ac ax'; c.textContent='-'; }
+      if(att && att.checkIn) {
+        const t=att.checkIn?.toDate?.();
+        const timeStr = t ? `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}` : '✓';
+        c.className='ac ao'; c.textContent=timeStr; c.style.fontSize='10px';
+      } else { c.className='ac ax'; c.textContent='-'; }
       g.appendChild(c);
     });
   });
