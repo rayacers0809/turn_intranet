@@ -1357,45 +1357,45 @@ async function loadAllData() {
   if (!ME.factionId) return;
   const fid = ME.factionId;
   try {
-    // 팩션원
-    const membersSnap = await getDocs(collection(db,'factions',fid,'members'));
-    const myDoc = membersSnap.docs.find(d => d.id === ME.uid);
-    if (myDoc) ME.rp_score = myDoc.data().rp_score || 0;
-    const approvedMembers = membersSnap.docs.filter(d => d.data().status !== 'pending');
-    APPLY_DATA = membersSnap.docs.filter(d => d.data().status === 'pending').map(d => ({ id:d.id, ...d.data() }));
-    RESIGN_DATA = membersSnap.docs.filter(d => d.data().status === 'resigned').map(d => ({ id:d.id, ...d.data() }));
-    // 직급
-    const ranksSnap = await getDocs(query(collection(db,'factions',fid,'ranks'), orderBy('order','asc')));
-    RANKS_DATA = ranksSnap.docs.map((d,i) => ({ id:d.id, n:i+1, name:d.data().name, cls:d.data().rankClass||'일반직', perms:d.data().perms||[] }));
-    // 공지
-    const ntSnap = await getDocs(query(collection(db,'factions',fid,'notices'), orderBy('createdAt','desc')));
-    const notices = ntSnap.docs.map(d => ({ id:d.id, ...d.data() }));
-    // RP
-    const rpSnap = await getDocs(query(collection(db,'factions',fid,'reports_rp'), orderBy('createdAt','desc')));
-    const rpData = rpSnap.docs.map(d => ({ id:d.id, ...d.data() }));
-    // 거래
-    const trSnap = await getDocs(query(collection(db,'factions',fid,'reports_trade'), orderBy('createdAt','desc')));
-    const trData = trSnap.docs.map(d => ({ id:d.id, ...d.data() }));
-    // 거래내역
-    const txSnap = await getDocs(query(collection(db,'factions',fid,'transactions'), orderBy('createdAt','desc')));
-    const txData = txSnap.docs.map(d => ({ id:d.id, ...d.data() }));
-    // 경고
-    const warnSnap = await getDocs(query(collection(db,'factions',fid,'warnings'), orderBy('createdAt','desc')));
-    const warnData = warnSnap.docs.map(d => ({ id:d.id, ...d.data() }));
-    // 출근
-    const attSnap = await getDocs(collection(db,'factions',fid,'attendance'));
-    const attData = attSnap.docs.map(d => ({ id:d.id, ...d.data() }));
-    // 활동 로그
+    // 모든 컬렉션 병렬 로드
+    const [
+      membersSnap, ranksSnap, ntSnap, rpSnap, trSnap,
+      txSnap, warnSnap, attSnap, zoneSnap, itemSnap
+    ] = await Promise.all([
+      getDocs(collection(db,'factions',fid,'members')),
+      getDocs(query(collection(db,'factions',fid,'ranks'), orderBy('order','asc'))),
+      getDocs(query(collection(db,'factions',fid,'notices'), orderBy('createdAt','desc'))),
+      getDocs(query(collection(db,'factions',fid,'reports_rp'), orderBy('createdAt','desc'))),
+      getDocs(query(collection(db,'factions',fid,'reports_trade'), orderBy('createdAt','desc'))),
+      getDocs(query(collection(db,'factions',fid,'transactions'), orderBy('createdAt','desc'))),
+      getDocs(query(collection(db,'factions',fid,'warnings'), orderBy('createdAt','desc'))),
+      getDocs(collection(db,'factions',fid,'attendance')),
+      getDocs(collection(db,'factions',fid,'zones')),
+      getDocs(collection(db,'factions',fid,'items')),
+    ]);
+
+    // 활동 로그 (인덱스 없을 수 있어서 별도)
     let logData = [];
     try {
       const logSnap = await getDocs(query(collection(db,'factions',fid,'activity_logs'), orderBy('createdAt','desc')));
       logData = logSnap.docs.map(d => ({ id:d.id, ...d.data() }));
     } catch(e){}
-    // 구역/물품
-    const zoneSnap = await getDocs(collection(db,'factions',fid,'zones'));
+
+    // 데이터 파싱
+    const myDoc = membersSnap.docs.find(d => d.id === ME.uid);
+    if (myDoc) ME.rp_score = myDoc.data().rp_score || 0;
+    const approvedMembers = membersSnap.docs.filter(d => d.data().status !== 'pending');
+    APPLY_DATA  = membersSnap.docs.filter(d => d.data().status === 'pending').map(d => ({ id:d.id, ...d.data() }));
+    RESIGN_DATA = membersSnap.docs.filter(d => d.data().status === 'resigned').map(d => ({ id:d.id, ...d.data() }));
+    RANKS_DATA  = ranksSnap.docs.map((d,i) => ({ id:d.id, n:i+1, name:d.data().name, cls:d.data().rankClass||'일반직', perms:d.data().perms||[] }));
     ZONES = zoneSnap.docs.map(d => ({ id:d.id, ...d.data() }));
-    const itemSnap = await getDocs(collection(db,'factions',fid,'items'));
     ITEMS = itemSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+    const notices = ntSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+    const rpData  = rpSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+    const trData  = trSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+    const txData  = txSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+    const warnData= warnSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+    const attData = attSnap.docs.map(d => ({ id:d.id, ...d.data() }));
     // 렌더
     renderDashboard(approvedMembers, rpData, logData);
     renderNotices(notices);
