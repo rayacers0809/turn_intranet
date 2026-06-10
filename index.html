@@ -1105,11 +1105,10 @@ function startLogin() {
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token');
   const error = params.get('error');
-  if (error) { toast('Discord 로그인 실패: '+error,'error'); window.history.replaceState({},'','/'); return; }
+  if (error) { toast('Discord 로그인 실패: '+error,'error'); try{window.history.replaceState({},'','/');}catch(e){} return; }
   if (token) { handleOAuthCallback(token); return; }
-  // 이미 로그인된 경우 → 바로 인트라넷 진입
-  if (auth.currentUser) { enterIntranet(); return; }
-  sessionStorage.removeItem('tc_mode');
+  if (auth.currentUser) { toast('이미 로그인되어 있습니다.','info'); return; }
+  sessionStorage.setItem('tc_mode','login');
   window.location.href = API_URL + '/auth/discord';
 }
 
@@ -2035,10 +2034,15 @@ async function obNext() {
 
     try {
       // API 서버에 코드 검증 + 팩션 창설 요청
+      // Firebase ID 토큰 발급해서 Authorization 헤더로 전송
+      const idToken = await auth.currentUser.getIdToken();
       const res = await fetch(API_URL + '/api/intranet/verify', {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + idToken,
+        },
         body: JSON.stringify({ code, factionName: fn, factionType: ft, founderRankName: rn }),
       });
       const data = await res.json();
@@ -2284,7 +2288,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Firebase Auth 상태 감지 → 랜딩 UI 업데이트
-  onAuthStateChanged(auth, () => { renderLanding(); });
+  onAuthStateChanged(auth, async (user) => {
+    if (user && !window._discordProfile) {
+      try {
+        const uDoc = await getDoc(doc(db, 'users', user.uid));
+        if (uDoc.exists()) window._discordProfile = uDoc.data();
+      } catch(e) {}
+    }
+    if (!user) window._discordProfile = null;
+    renderLanding();
+  });
 
   // 초기 렌더
   setTimeout(renderLanding, 100);
