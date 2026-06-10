@@ -1026,11 +1026,11 @@ let selectedClass = '고위직';
 let selectedPerms = new Set(CLASS_DEFAULTS['고위직']);
 
 function can(perm) { return ME.isFounder || ME.perms.includes(perm); }
-function isGov()   { return ['경찰 / 공무원','EMS / 소방'].some(t => ME.factionType.includes(t.split('/')[0].trim())); }
-function isCorp()  { return ME.factionType.includes('기업') || ME.factionType.includes('회사'); }
-function isCrime() { return ME.factionType.includes('조직') || ME.factionType.includes('마피아') || ME.factionType.includes('갱단') || ME.factionType.includes('범죄'); }
-function hasRP()   { return isGov() || isCrime() || !ME.factionType; }
-function hasTrade(){ return isCorp() || isCrime() || !ME.factionType; }
+function isGov()   { const t=ME.factionType||''; return t.includes('경찰') || t.includes('공무원') || t.includes('EMS') || t.includes('소방'); }
+function isCorp()  { const t=ME.factionType||''; return t.includes('기업') || t.includes('회사'); }
+function isCrime() { const t=ME.factionType||''; return t.includes('조직') || t.includes('마피아') || t.includes('갱단') || t.includes('범죄'); }
+function hasRP()   { const t=ME.factionType||''; return isGov() || isCrime() || !t || t==='기타'; }
+function hasTrade(){ const t=ME.factionType||''; return isCorp() || isCrime() || !t || t==='기타'; }
 
 // ══════════════════════════════════════════
 // 메뉴
@@ -2026,19 +2026,22 @@ function renderOB() {
 async function obNext() {
   if (obStep === 1) {
     const fn = document.getElementById('obFN')?.value.trim();
+    const ft = document.getElementById('obFT')?.value || '기타';
     if (!fn) { toast('팩션명을 입력해주세요.','error'); return; }
+    window._obFN = fn; window._obFT = ft;
     obStep++; renderOB(); return;
   }
   if (obStep === 2) {
     const rn = document.getElementById('obRN')?.value.trim();
     if (!rn) { toast('팩션장 직급명을 입력해주세요.','error'); return; }
+    window._obRN = rn;
     obStep++; renderOB(); return;
   }
   if (obStep === OB_STEPS) {
     const code = (document.getElementById('obCode')?.value || '').trim();
-    const fn   = document.getElementById('obFN')?.value.trim() || '';
-    const ft   = document.getElementById('obFT')?.value || '기타';
-    const rn   = document.getElementById('obRN')?.value.trim() || '팩션장';
+    const fn   = window._obFN || document.getElementById('obFN')?.value.trim() || '';
+    const ft   = window._obFT || document.getElementById('obFT')?.value || '기타';
+    const rn   = window._obRN || document.getElementById('obRN')?.value.trim() || '팩션장';
     if (!code) { toast('인증 코드를 입력해주세요.','error'); return; }
     if (!auth.currentUser) { toast('로그인이 필요합니다.','error'); return; }
 
