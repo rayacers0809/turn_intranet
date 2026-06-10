@@ -631,10 +631,8 @@ input,textarea,select{font-family:var(--font);}
       <div class="lnav-icon">TC</div>
       <div class="lnav-text">Turn City</div>
     </div>
-    <div class="lnav-links">
-      <span class="lnav-link" onclick="startLogin()">로그인</span>
-      <span class="lnav-link" onclick="startLogin()">인트라넷 접속</span>
-      <span class="lnav-cta" onclick="openOB()">도입하기</span>
+    <div class="lnav-links" id="lnavLinks">
+      <!-- JS로 동적 렌더 -->
       <div class="thbtn" onclick="toggleTheme()" id="thBtn">🌙</div>
     </div>
   </nav>
@@ -643,12 +641,16 @@ input,textarea,select{font-family:var(--font);}
       <div class="landing-kicker">Turn City FiveM · Faction Intranet</div>
       <h1 class="landing-h1">팩션 운영,<br>이제 한 곳에서.</h1>
       <p class="landing-desc">출근부부터 보고서, 금고, 팩션원 관리까지.<br>Turn City 팩션을 위한 전용 인트라넷.</p>
-      <div class="landing-btns">
-        <button class="hbtn p" onclick="startLogin()">인트라넷 접속 →</button>
-        <button class="hbtn o" onclick="openOB()">팩션 등록</button>
+      <div id="landingBtns" class="landing-btns">
+        <!-- JS로 동적 렌더 -->
       </div>
-      <div style="font-size:12px;color:var(--tx3);margin-top:-30px;margin-bottom:30px;">
-        💡 팩션 등록은 로그인 후 가능합니다. 관리자에게 코드를 받아야 합니다.
+      <div id="landingLoginInfo" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:14px 18px;margin-bottom:36px;display:none;align-items:center;gap:12px;max-width:340px;">
+        <div id="landingAva" style="width:40px;height:40px;border-radius:50%;background:var(--grad-p);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;overflow:hidden;flex-shrink:0;"></div>
+        <div style="flex:1;">
+          <div id="landingName" style="font-size:14px;font-weight:700;"></div>
+          <div style="font-size:11px;color:var(--tx3);">Discord 로그인됨</div>
+        </div>
+        <span class="badge bbs">로그인됨</span>
       </div>
       <div class="landing-stats">
         <div><div class="lstat-n" id="lstFactions">-</div><div class="lstat-l">등록 팩션</div></div>
@@ -2195,7 +2197,7 @@ document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',e=>{if(e.
 // window 전역 노출
 // ══════════════════════════════════════════
 Object.assign(window,{
-  showScreen, navTo, mobNav, toggleTheme, setMode, startLogin, startOBLogin, openOB, logout, doLogout,
+  showScreen, navTo, mobNav, toggleTheme, setMode, startLogin, startOBLogin, openOB, logout, doLogout, renderLanding,
   checkJoinCode, joinNext, submitJoinApply, renderJoinPending,
   obNext, obPrev, renderOB, selectClass, openRankCreate, createRank,
   toggleCI, openCz, closeCz, saveCz, resetCz, applyColor, applyType,
@@ -2214,6 +2216,7 @@ Object.assign(window,{
 // ══════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
   startClock();
+  renderLanding(); // 초기 랜딩 렌더
   // URL 파라미터 체크
   const params=new URLSearchParams(window.location.search);
   const token=params.get('token'), error=params.get('error');
@@ -2221,10 +2224,11 @@ document.addEventListener('DOMContentLoaded', () => {
   else if(token){ handleOAuthCallback(token); }
   // Firebase Auth 상태 감지
   onAuthStateChanged(auth, async user=>{
-    if(!user) return;
-    const params2=new URLSearchParams(window.location.search);
-    if(!params2.get('token') && document.getElementById('screen-landing')?.classList.contains('active')) {
-      // 이미 로그인된 상태로 랜딩 접속 시 팩션 확인
+    renderLanding(); // 로그인 상태 변경 시 랜딩 UI 업데이트
+    if (!user) return;
+    const params2 = new URLSearchParams(window.location.search);
+    if (!params2.get('token')) {
+      // 이미 로그인된 상태로 랜딩 접속 → 그냥 랜딩 유지 (유저가 버튼 눌러야 진입)
     }
   });
 });
