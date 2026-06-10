@@ -2347,6 +2347,41 @@ window.addZone=addZone; window.deleteZone=deleteZone;
 window.addItem=addItem; window.deleteItem=deleteItem;
 window.switchSettingsTab=switchSettingsTab;
 window.openMobDrawer=openMobDrawer; window.closeMobDrawer=closeMobDrawer; window.syncMobUI=syncMobUI;
+
+// ── 프로필 편집 ──────────────────────────────
+async function openEditProfile() {
+  const el1 = document.getElementById('editNick');
+  const el2 = document.getElementById('editGameId');
+  const el3 = document.getElementById('editBio');
+  if(el1) el1.value = ME.gameNick || ME.name || '';
+  if(ME.factionId && ME.uid) {
+    try {
+      const mDoc = await getDoc(doc(db,'factions',ME.factionId,'members',ME.uid));
+      if(mDoc.exists()) {
+        if(el2) el2.value = mDoc.data().gameId || '';
+        if(el3) el3.value = mDoc.data().bio || '';
+      }
+    } catch(e) {}
+  }
+}
+
+async function saveProfile() {
+  const nick   = document.getElementById('editNick')?.value.trim();
+  const gameId = document.getElementById('editGameId')?.value.trim();
+  const bio    = document.getElementById('editBio')?.value.trim();
+  if(!nick) { toast('닉네임을 입력해주세요.','error'); return; }
+  if(!ME.factionId || !ME.uid) return;
+  try {
+    await updateDoc(doc(db,'factions',ME.factionId,'members',ME.uid),{
+      username: nick, gameNick: nick, gameId: gameId||'', bio: bio||'',
+    });
+    ME.name = nick;
+    renderUserInfo();
+    cm('moEditProfile');
+    toast('프로필 저장 완료!','success');
+  } catch(err){ toast('저장 실패: '+err.message,'error'); }
+}
+
 window.om=om; window.cm=cm; window.toast=toast;
 window.saveProfile=saveProfile; window.openEditProfile=openEditProfile;
 
