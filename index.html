@@ -2263,20 +2263,36 @@ function renderLanding() {
   }
 }
 
-Object.assign(window,{
-  showScreen, navTo, mobNav, toggleTheme, setMode, startLogin, startOBLogin, enterIntranet, openOB, logout, doLogout, renderLanding, renderLanding,
-  checkJoinCode, joinNext, submitJoinApply, renderJoinPending,
-  obNext, obPrev, renderOB, selectClass, openRankCreate, createRank,
-  toggleCI, openCz, closeCz, saveCz, resetCz, applyColor, applyType,
-  switchMemTab, approveApply, rejectApply, acceptResign, rejectResign,
-  openPromoteModal, confirmPromote, renderPromoteMemberList, renderPromoteRankList, updatePromotePreview,
-  submitRp, approveRp, filterRp, selectRpResult,
-  submitTr, filterTr, onItemSelect, calcTrTotal, checkDailyLimit,
-  submitNt, saveWebhooks, testWh, regenCode,
-  addZone, deleteZone, addItem, deleteItem,
-  switchSettingsTab, openMobDrawer, closeMobDrawer, syncMobUI,
-  om, cm, toast,
-});
+// window 전역 노출
+window.showScreen=showScreen; window.navTo=navTo; window.mobNav=mobNav;
+window.toggleTheme=toggleTheme; window.setMode=setMode;
+window.startLogin=startLogin; window.startOBLogin=startOBLogin;
+window.enterIntranet=enterIntranet; window.openOB=openOB;
+window.logout=logout; window.doLogout=doLogout;
+window.renderLanding=renderLanding;
+window.checkJoinCode=checkJoinCode; window.joinNext=joinNext;
+window.submitJoinApply=submitJoinApply; window.renderJoinPending=renderJoinPending;
+window.obNext=obNext; window.obPrev=obPrev; window.renderOB=renderOB;
+window.selectClass=selectClass; window.openRankCreate=openRankCreate; window.createRank=createRank;
+window.toggleCI=toggleCI; window.openCz=openCz; window.closeCz=closeCz;
+window.saveCz=saveCz; window.resetCz=resetCz; window.applyColor=applyColor; window.applyType=applyType;
+window.switchMemTab=switchMemTab; window.approveApply=approveApply;
+window.rejectApply=rejectApply; window.acceptResign=acceptResign; window.rejectResign=rejectResign;
+window.openPromoteModal=openPromoteModal; window.confirmPromote=confirmPromote;
+window.renderPromoteMemberList=renderPromoteMemberList;
+window.renderPromoteRankList=renderPromoteRankList;
+window.updatePromotePreview=updatePromotePreview;
+window.submitRp=submitRp; window.approveRp=approveRp;
+window.filterRp=filterRp; window.selectRpResult=selectRpResult;
+window.submitTr=submitTr; window.filterTr=filterTr;
+window.onItemSelect=onItemSelect; window.calcTrTotal=calcTrTotal; window.checkDailyLimit=checkDailyLimit;
+window.submitNt=submitNt; window.saveWebhooks=saveWebhooks;
+window.testWh=testWh; window.regenCode=regenCode;
+window.addZone=addZone; window.deleteZone=deleteZone;
+window.addItem=addItem; window.deleteItem=deleteItem;
+window.switchSettingsTab=switchSettingsTab;
+window.openMobDrawer=openMobDrawer; window.closeMobDrawer=closeMobDrawer; window.syncMobUI=syncMobUI;
+window.om=om; window.cm=cm; window.toast=toast;
 
 // ══════════════════════════════════════════
 // 초기화
