@@ -2231,11 +2231,13 @@ document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',e=>{if(e.
 
 // ── 랜딩 로그인 상태 렌더 ─────────────────────
 function renderLanding() {
-  const user = auth.currentUser;
+  const user    = auth.currentUser;
+  const profile = window._discordProfile || {};
   const navLinks = document.getElementById('lnavLinks');
   const btns     = document.getElementById('landingBtns');
   if (user) {
-    const name = user.displayName || '유저';
+    const name   = profile.username || user.displayName || '유저';
+    const avatar = profile.avatar   || '';
     if (navLinks) navLinks.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;padding:4px 10px;background:var(--bg3);border:1px solid var(--bd);border-radius:20px;">
         <div style="width:24px;height:24px;border-radius:50%;background:#4F8EF7;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;">${name[0].toUpperCase()}</div>
