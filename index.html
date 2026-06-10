@@ -2303,10 +2303,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // Firebase Auth 상태 감지 → 랜딩 UI 업데이트
   onAuthStateChanged(auth, async (user) => {
     if (user && !window._discordProfile) {
+      // Firestore에서 프로필 로드
       try {
         const uDoc = await getDoc(doc(db, 'users', user.uid));
-        if (uDoc.exists()) window._discordProfile = uDoc.data();
+        if (uDoc.exists()) {
+          window._discordProfile = uDoc.data();
+        }
       } catch(e) {}
+      // Firestore에도 없으면 API /auth/me 시도
+      if (!window._discordProfile?.username) {
+        try {
+          const res = await fetch(API_URL + '/auth/me', { credentials: 'include' });
+          const data = await res.json();
+          if (data.ok && data.user) window._discordProfile = data.user;
+        } catch(e) {}
+      }
     }
     if (!user) window._discordProfile = null;
     renderLanding();
