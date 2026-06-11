@@ -429,6 +429,43 @@ input,textarea,select{font-family:var(--font);}
 </div>
 
 <!-- MODALS -->
+<!-- ── 팩션원 관리 모달 ── -->
+<div class="mo" id="moMemberManage">
+<div class="md">
+  <div class="mh"><h2>👤 팩션원 관리</h2><p id="mmTarget">-</p></div>
+  <div style="display:flex;flex-direction:column;gap:13px;">
+    <div class="fi"><label>직급 변경</label><select class="inp" id="mmRank"><option value="">직급 선택...</option></select></div>
+    <button class="btn p" onclick="mmChangeRank()">직급 변경 적용</button>
+    <div style="border-top:1px solid var(--bd);padding-top:13px;">
+      <button class="btn d" style="width:100%;" onclick="mmKick()">🚪 팩션에서 추방</button>
+    </div>
+  </div>
+  <div class="mf"><button class="btn g sm" onclick="cm('moMemberManage')">닫기</button></div>
+</div>
+</div>
+
+<!-- ── 사직서 제출 모달 ── -->
+<div class="mo" id="moResign">
+<div class="md">
+  <div class="mh"><h2>📝 사직서 제출</h2><p>사직 사유를 작성해주세요. 관리자 수리 후 퇴단 처리됩니다.</p></div>
+  <div class="fi"><label>사직 사유</label><textarea class="inp" id="resignReason" rows="4" placeholder="사직 사유를 작성해주세요..."></textarea></div>
+  <div class="mf"><button class="btn g sm" onclick="cm('moResign')">취소</button><button class="btn d sm" onclick="submitResign()">제출 →</button></div>
+</div>
+</div>
+
+<!-- ── 경고 부여 모달 ── -->
+<div class="mo" id="moWarn">
+<div class="md">
+  <div class="mh"><h2>⚠️ 내부경고 부여</h2><p>팩션원에게 경고를 부여합니다.</p></div>
+  <div style="display:flex;flex-direction:column;gap:13px;">
+    <div class="fi"><label>대상 팩션원</label><select class="inp" id="warnTarget"><option value="">선택...</option></select></div>
+    <div class="fi"><label>경고 수위</label><select class="inp" id="warnLevel"><option>구두경고</option><option>경고 1회</option><option>경고 2회</option><option>최종경고</option></select></div>
+    <div class="fi"><label>사유</label><textarea class="inp" id="warnReason" rows="3" placeholder="경고 사유..."></textarea></div>
+  </div>
+  <div class="mf"><button class="btn g sm" onclick="cm('moWarn')">취소</button><button class="btn d sm" onclick="submitWarn()">경고 부여 →</button></div>
+</div>
+</div>
+
 <!-- ── 프로필 편집 모달 ── -->
 <div class="mo" id="moEditProfile">
 <div class="md">
@@ -438,7 +475,10 @@ input,textarea,select{font-family:var(--font);}
     <div class="fi"><label>고유번호 (ID)</label><input class="inp" id="editGameId" placeholder="인게임 고유번호" type="number"></div>
     <div class="fi"><label>자기소개</label><textarea class="inp" id="editBio" rows="3" placeholder="자기소개..."></textarea></div>
   </div>
-  <div class="mf"><button class="btn g sm" onclick="cm('moEditProfile')">취소</button><button class="btn p sm" onclick="saveProfile()">저장 →</button></div>
+  <div class="mf" style="justify-content:space-between;">
+    <button class="btn d sm" onclick="cm('moEditProfile');om('moResign')">📝 사직서</button>
+    <div style="display:flex;gap:8px;"><button class="btn g sm" onclick="cm('moEditProfile')">취소</button><button class="btn p sm" onclick="saveProfile()">저장 →</button></div>
+  </div>
 </div>
 </div>
 
@@ -874,7 +914,7 @@ input,textarea,select{font-family:var(--font);}
 
       <!-- 경고 -->
       <div class="page" id="page-warnings">
-        <div class="tb"><button class="btn p sm" id="btnWarn">+ 경고 부여</button></div>
+        <div class="tb"><button class="btn p sm" id="btnWarn" onclick="openWarnModal()">+ 경고 부여</button></div>
         <div id="warnList"><div style="text-align:center;padding:30px;color:var(--tx3);">내부경고가 없습니다.</div></div>
       </div>
 
@@ -1053,6 +1093,7 @@ function hasTrade(){ const t=ME.factionType||''; return isCorp() || isCrime() ||
 // ══════════════════════════════════════════
 // 메뉴
 // ══════════════════════════════════════════
+let FACTION_SETTINGS = {};
 function getMenu() {
   const m = [
     { sec:'메인' },
@@ -1061,8 +1102,10 @@ function getMenu() {
     { p:'attendance', icon:'📅', label:'출근부' },
     { sec:'보고서' },
   ];
-  if (hasRP())    m.push({ p:'rp',    icon:'📋', label:'RP 보고서',   badge:'rpBadge' });
-  if (hasTrade()) m.push({ p:'trade', icon:'💰', label:'거래 보고서' });
+  const rpOn    = FACTION_SETTINGS.rpEnabled    !== false;
+  const tradeOn = FACTION_SETTINGS.tradeEnabled !== false;
+  if (hasRP()    && rpOn)    m.push({ p:'rp',    icon:'📋', label:'RP 보고서',   badge:'rpBadge' });
+  if (hasTrade() && tradeOn) m.push({ p:'trade', icon:'💰', label:'거래 보고서' });
   m.push(
     { sec:'팩션 관리' },
     { p:'members',  icon:'👥', label:'팩션원 관리', perm:'member_manage' },
@@ -1309,6 +1352,8 @@ async function loadIntranet(factionData, memberData, userData) {
     factionId:   userData.factionId,
     factionType: factionData.factionType || '',
     rp_score:    memberData.rp_score  || 0,
+    gameNick:    memberData.gameNick  || memberData.username || '',
+    gameId:      memberData.gameId    || '',
   };
   // 팩션 정보 적용
   const fn = factionData.factionName || '-';
@@ -1320,7 +1365,8 @@ async function loadIntranet(factionData, memberData, userData) {
   const sfn = document.getElementById('settingFN'); if(sfn) sfn.value = fn;
   if (factionData.theme?.primaryColor) applyColor(factionData.theme.primaryColor, null);
   // 설정 토글 로드
-  loadSettingsToggles(factionData.settings || {});
+  FACTION_SETTINGS = factionData.settings || {};
+  loadSettingsToggles(FACTION_SETTINGS);
   // 팩션 설정 구분 select
   const sft = document.getElementById('settingFT');
   if(sft) sft.value = factionData.factionType || '기타';
@@ -1333,6 +1379,25 @@ async function loadIntranet(factionData, memberData, userData) {
   renderUserInfo(); renderNav(); applyPermUI(); startClock();
   showScreen('screen-app');
   toast(`환영합니다, ${ME.name}님! 👋`, 'success');
+
+  // 출근 상태 복원 (오늘 미퇴근 세션 있으면 출근 중)
+  try {
+    const today0 = new Date().toISOString().split('T')[0];
+    const attDoc0 = await getDoc(doc(db,'factions',ME.factionId,'attendance',`${ME.uid}_${today0}`));
+    if (attDoc0.exists()) {
+      const sessions0 = attDoc0.data().sessions || [];
+      const open0 = sessions0.find(s => s.checkIn && !s.checkOut);
+      if (open0) {
+        isCI = true;
+        ciStartTime = new Date(open0.checkIn).getTime();
+        const btn0 = document.getElementById('ciBtn');
+        const st0  = document.getElementById('ciS');
+        const t0 = new Date(open0.checkIn);
+        if(btn0){ btn0.textContent='퇴근하기'; btn0.classList.add('out'); }
+        if(st0){ st0.textContent=`${String(t0.getHours()).padStart(2,'0')}:${String(t0.getMinutes()).padStart(2,'0')} 출근 ●`; st0.style.color='var(--success)'; }
+      }
+    }
+  } catch(e) { console.warn('[출근 상태 복원]', e); }
 
   // Realtime Database - 온라인 현황
   if (ME.factionId && ME.uid) {
@@ -1385,6 +1450,7 @@ async function loadAllData() {
     const myDoc = membersSnap.docs.find(d => d.id === ME.uid);
     if (myDoc) ME.rp_score = myDoc.data().rp_score || 0;
     const approvedMembers = membersSnap.docs.filter(d => d.data().status !== 'pending');
+    MEMBERS_CACHE = approvedMembers.map(d => ({ id:d.id, ...d.data() }));
     APPLY_DATA  = membersSnap.docs.filter(d => d.data().status === 'pending').map(d => ({ id:d.id, ...d.data() }));
     RESIGN_DATA = membersSnap.docs.filter(d => d.data().status === 'resigned').map(d => ({ id:d.id, ...d.data() }));
     RANKS_DATA  = ranksSnap.docs.map((d,i) => ({ id:d.id, n:i+1, name:d.data().name, cls:d.data().rankClass||'일반직', perms:d.data().perms||[] }));
@@ -1396,6 +1462,7 @@ async function loadAllData() {
     const txData  = txSnap.docs.map(d => ({ id:d.id, ...d.data() }));
     const warnData= warnSnap.docs.map(d => ({ id:d.id, ...d.data() }));
     const attData = attSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+    window._attDataCache = attData;
     // 렌더
     renderDashboard(approvedMembers, rpData, logData);
     renderNotices(notices);
@@ -1437,6 +1504,20 @@ function renderDashboard(membersSnap, rpData, logData) {
   const myMemberData = membersSnap.find(d=>d.id===ME.uid)?.data();
   if(dashWarn) dashWarn.textContent=myMemberData?.warn_count||0;
   const dashTrade = document.getElementById('dashTradeCount'); if(dashTrade) dashTrade.textContent=myMemberData?.trade_count||0;
+  // 출근률 (이번 주 출근일 / 오늘까지 경과일)
+  const rateEl = document.getElementById('dashAttRate');
+  if (rateEl && window._attDataCache) {
+    const now = new Date(); const dow = now.getDay();
+    const mon = new Date(now); mon.setDate(now.getDate()-(dow===0?6:dow-1));
+    const daysPassed = Math.min(Math.floor((now-mon)/86400000)+1, 7);
+    let attended = 0;
+    for(let i=0;i<daysPassed;i++){
+      const d2 = new Date(mon); d2.setDate(mon.getDate()+i);
+      const ds = d2.toISOString().split('T')[0];
+      if(window._attDataCache.find(a=>a.userId===ME.uid&&a.date===ds)) attended++;
+    }
+    rateEl.textContent = daysPassed>0 ? Math.round(attended/daysPassed*100)+'%' : '-';
+  }
   // 순위
   const rkBoard = document.getElementById('rkBoard');
   if (rkBoard) {
@@ -1558,7 +1639,8 @@ function renderMembers(membersSnap) {
   membersSnap.forEach(m => {
     const d=m.data(); const isMe=m.id===ME.uid;
     const div=document.createElement('div'); div.className='mr';
-    div.innerHTML=`<div class="ma">${d.avatar?`<img src="${d.avatar}">`:(d.username?.[0]||'?')}</div><div style="flex:1;"><div class="mn">${d.username||'-'}${isMe?'<span style="font-size:10px;color:var(--p);margin-left:4px;">(나)</span>':''}</div><div style="display:flex;align-items:center;gap:5px;"><div class="mrk">${d.rankName||'-'}</div><span class="cls-badge cls-${d.rankClass||'일반직'}">${d.rankClass||'일반직'}</span></div></div><div class="mst"><div class="ms"><div class="v">${d.rp_score||0}</div><div class="l">RP</div></div><div class="ms"><div class="v">${d.trade_count||0}</div><div class="l">거래</div></div><div class="ms"><div class="v" style="color:${(d.warn_count||0)>0?'var(--danger)':'var(--success)'};">${d.warn_count||0}</div><div class="l">경고</div></div></div>${can('member_manage')?`<div class="mact"><button class="btn g sm" style="padding:4px 8px;font-size:11px;">관리</button></div>`:''}`;
+    div.dataset.memberId = m.id;
+    div.innerHTML=`<div class="ma">${d.avatar?`<img src="${d.avatar}">`:(d.username?.[0]||'?')}</div><div style="flex:1;"><div class="mn">${d.username||'-'}${isMe?'<span style="font-size:10px;color:var(--p);margin-left:4px;">(나)</span>':''}</div><div style="display:flex;align-items:center;gap:5px;"><div class="mrk">${d.rankName||'-'}</div><span class="cls-badge cls-${d.rankClass||'일반직'}">${d.rankClass||'일반직'}</span></div></div><div class="mst"><div class="ms"><div class="v">${d.rp_score||0}</div><div class="l">RP</div></div><div class="ms"><div class="v">${d.trade_count||0}</div><div class="l">거래</div></div><div class="ms"><div class="v" style="color:${(d.warn_count||0)>0?'var(--danger)':'var(--success)'};">${d.warn_count||0}</div><div class="l">경고</div></div></div><div class="mact">${isMe?`<button class="btn p sm" style="padding:4px 8px;font-size:11px;" onclick="om('moEditProfile')">프로필 편집</button>`:''}${can('member_manage')&&!isMe?`<button class="btn g sm" style="padding:4px 8px;font-size:11px;" onclick="openMemberManage('${m.id}','${(d.username||'').replace(/'/g,'')}')">관리</button>`:''}</div>`;
     el.appendChild(div);
   });
 }
@@ -2473,6 +2555,9 @@ async function saveSettings() {
       'settings.tradeAudit':     document.getElementById('togTradeAudit')?.classList.contains('on'),
       'settings.attendanceAuto': document.getElementById('togAttendance')?.classList.contains('on'),
     });
+    FACTION_SETTINGS.rpEnabled      = document.getElementById('togRpEnabled')?.classList.contains('on');
+    FACTION_SETTINGS.tradeEnabled   = document.getElementById('togTradeEnabled')?.classList.contains('on');
+    renderNav();
     toast('기능 설정 저장 완료!','success');
   } catch(err){ toast('저장 실패: '+err.message,'error'); }
 }
@@ -2492,9 +2577,107 @@ function loadSettingsToggles(settings) {
   setToggle('togAttendance',     settings.attendanceAuto !== false);
 }
 
+
+// ── 팩션원 관리 모달 ──────────────────────────
+let mmTargetId = null;
+function openMemberManage(memberId, name) {
+  mmTargetId = memberId;
+  const t = document.getElementById('mmTarget');
+  if(t) t.textContent = `대상: ${name}`;
+  const sel = document.getElementById('mmRank');
+  if(sel) {
+    sel.innerHTML = '<option value="">직급 선택...</option>';
+    RANKS_DATA.forEach(r => {
+      const o = document.createElement('option');
+      o.value = r.id; o.textContent = `${r.name} (${r.cls})`;
+      sel.appendChild(o);
+    });
+  }
+  om('moMemberManage');
+}
+
+async function mmChangeRank() {
+  const rankId = document.getElementById('mmRank')?.value;
+  if(!rankId) { toast('직급을 선택해주세요.','error'); return; }
+  if(!mmTargetId || !ME.factionId) return;
+  const rank = RANKS_DATA.find(r => r.id === rankId);
+  try {
+    await updateDoc(doc(db,'factions',ME.factionId,'members',mmTargetId),{
+      rankId, rankName: rank?.name||'', rankClass: rank?.cls||'일반직', perms: rank?.perms||[],
+    });
+    cm('moMemberManage');
+    toast('직급 변경 완료!','success');
+    await loadAllData();
+  } catch(err){ toast('변경 실패: '+err.message,'error'); }
+}
+
+async function mmKick() {
+  if(!mmTargetId || !ME.factionId) return;
+  if(!confirm('정말 추방하시겠습니까? 되돌릴 수 없습니다.')) return;
+  try {
+    await deleteDoc(doc(db,'factions',ME.factionId,'members',mmTargetId));
+    cm('moMemberManage');
+    toast('추방 처리 완료.','info');
+    await loadAllData();
+  } catch(err){ toast('추방 실패: '+err.message,'error'); }
+}
+
+// ── 사직서 제출 ───────────────────────────────
+async function submitResign() {
+  const reason = document.getElementById('resignReason')?.value.trim();
+  if(!reason) { toast('사직 사유를 입력해주세요.','error'); return; }
+  if(!ME.factionId || !ME.uid) return;
+  try {
+    await updateDoc(doc(db,'factions',ME.factionId,'members',ME.uid),{
+      status:'resigned', resignReason: reason, resignedAt: serverTimestamp(),
+    });
+    cm('moResign');
+    toast('사직서가 제출되었습니다. 관리자 수리를 기다려주세요.','info');
+  } catch(err){ toast('제출 실패: '+err.message,'error'); }
+}
+
+// ── 경고 부여 ─────────────────────────────────
+let MEMBERS_CACHE = [];
+function openWarnModal() {
+  const sel = document.getElementById('warnTarget');
+  if(sel) {
+    sel.innerHTML = '<option value="">선택...</option>';
+    MEMBERS_CACHE.forEach(m => {
+      if(m.id === ME.uid) return;
+      const o = document.createElement('option');
+      o.value = m.id; o.textContent = `${m.username||'-'} (${m.rankName||'-'})`;
+      sel.appendChild(o);
+    });
+  }
+  om('moWarn');
+}
+
+async function submitWarn() {
+  const targetId = document.getElementById('warnTarget')?.value;
+  const level    = document.getElementById('warnLevel')?.value || '경고';
+  const reason   = document.getElementById('warnReason')?.value.trim();
+  if(!targetId) { toast('대상을 선택해주세요.','error'); return; }
+  if(!reason)   { toast('사유를 입력해주세요.','error'); return; }
+  if(!ME.factionId) return;
+  const target = MEMBERS_CACHE.find(m => m.id === targetId);
+  try {
+    await addDoc(collection(db,'factions',ME.factionId,'warnings'),{
+      targetId, targetName: target?.username||'-', level, reason,
+      givenBy: ME.name, givenById: ME.uid, createdAt: serverTimestamp(),
+    });
+    await updateDoc(doc(db,'factions',ME.factionId,'members',targetId),{ warn_count: fsIncrement(1) });
+    cm('moWarn');
+    toast('경고 부여 완료.','info');
+    document.getElementById('warnReason').value='';
+    await loadAllData();
+  } catch(err){ toast('부여 실패: '+err.message,'error'); }
+}
+
 window.om=om; window.cm=cm; window.toast=toast;
 window.saveProfile=saveProfile; window.openEditProfile=openEditProfile;
 window.saveFactionInfo=saveFactionInfo; window.saveSettings=saveSettings; window.loadSettingsToggles=loadSettingsToggles;
+window.openMemberManage=openMemberManage; window.mmChangeRank=mmChangeRank; window.mmKick=mmKick;
+window.submitResign=submitResign; window.openWarnModal=openWarnModal; window.submitWarn=submitWarn;
 
 // ══════════════════════════════════════════
 // 초기화
