@@ -436,6 +436,17 @@ input,textarea,select{font-family:var(--font);}
 </div>
 
 <!-- MODALS -->
+<!-- ── 온라인 팩션원 모달 ── -->
+<div class="mo" id="moOnline">
+<div class="md">
+  <div class="mh"><h2>🟢 온라인 팩션원</h2><p id="onlineModalSub">현재 접속 중인 팩션원</p></div>
+  <div id="onlineListBody" style="display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;">
+    <div style="text-align:center;color:var(--tx3);padding:20px;">불러오는 중...</div>
+  </div>
+  <div class="mf"><button class="btn g sm" onclick="cm('moOnline')">닫기</button></div>
+</div>
+</div>
+
 <!-- ── 직급 수정 모달 ── -->
 <div class="mo" id="moRankEdit">
 <div class="md wide">
@@ -833,7 +844,7 @@ input,textarea,select{font-family:var(--font);}
       <div class="page active" id="page-dashboard">
         <div class="dash-banner">
           <div class="db"><h2 id="dbWelcome">안녕하세요 👋</h2><p id="dbSub">오늘도 Turn City에서 활동해주세요.</p></div>
-          <div class="opill"><span class="odot"></span><span id="onlineCount">-</span>명 온라인</div>
+          <div class="opill" onclick="openOnlineList()" style="cursor:pointer;" title="온라인 팩션원 보기"><span class="odot"></span><span id="onlineCount">-</span>명 온라인 👁</div>
         </div>
         <div class="ci">
           <div><div class="ci-l">현재 시각</div><div class="ci-clk" id="clk">--:--:--</div></div>
@@ -1474,16 +1485,26 @@ async function loadIntranet(factionData, memberData, userData) {
   // Realtime Database - 온라인 현황
   if (ME.factionId && ME.uid) {
     try {
-      const { set, onDisconnect, onValue, ref: rref } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
+      const { set, onDisconnect, onValue, ref: rref, serverTimestamp: rtdbTs } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js");
       const onlineRef = rref(rtdb, `online/${ME.factionId}/${ME.uid}`);
-      await set(onlineRef, { name: ME.name, ts: Date.now() });
+      // 본인 온라인 등록
+      await set(onlineRef, { name: ME.name, avatar: ME.avatar||'', rank: ME.rankName||'', ts: Date.now() });
       onDisconnect(onlineRef).remove();
-      const countRef = rref(rtdb, `online/${ME.factionId}`);
-      onValue(countRef, snap => {
-        const count = snap.exists() ? Object.keys(snap.val()||{}).length : 0;
+      // 온라인 목록 실시간 구독
+      const listRef = rref(rtdb, `online/${ME.factionId}`);
+      onValue(listRef, snap => {
+        const val = snap.exists() ? (snap.val()||{}) : {};
+        window._onlineList = Object.entries(val).map(([uid,info]) => ({ uid, ...info }));
+        const count = window._onlineList.length;
         const el = document.getElementById('onlineCount');
         if (el) el.textContent = count;
-      });
+        // 모달 열려있으면 갱신
+        if(document.getElementById('moOnline')?.classList.contains('open')) renderOnlineList();
+      }, err => console.warn('[온라인 구독]', err.code));
+      // 주기적으로 ts 갱신 (좀비 방지, 60초마다)
+      window._onlineHeartbeat = setInterval(() => {
+        set(onlineRef, { name: ME.name, avatar: ME.avatar||'', rank: ME.rankName||'', ts: Date.now() }).catch(()=>{});
+      }, 60000);
     } catch(e) { console.error('[온라인 오류]', e.code, e.message); }
   }
 }
@@ -1780,10 +1801,27 @@ function renderAttendance(members, attData) {
     week.forEach(date => {
       const att=attData.find(a=>a.userId===m.userId&&a.date===date);
       const c=document.createElement('div');
-      if(att && att.checkIn) {
-        const t=att.checkIn?.toDate?.();
-        const timeStr = t ? `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}` : '✓';
-        c.className='ac ao'; c.textContent=timeStr; c.style.fontSize='10px';
+      if(att) {
+        const sessions = att.sessions || [];
+        const totalMin = att.totalMinutes || 0;
+        // 출근 중인 열린 세션 확인
+        const openSession = sessions.find(s => s.checkIn && !s.checkOut);
+        if(openSession) {
+          // 현재 출근 중 - 출근 시각 + 표시
+          const t = new Date(openSession.checkIn);
+          c.className='ac ao';
+          c.innerHTML = `<div style="font-size:10px;font-weight:600;">${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}</div><div style="font-size:8px;color:var(--success);">● 근무중</div>`;
+        } else if(totalMin > 0) {
+          // 퇴근 완료 - 총 근무시간 표시
+          const h = Math.floor(totalMin/60), mm = totalMin%60;
+          const firstSession = sessions[0];
+          const startT = firstSession?.checkIn ? new Date(firstSession.checkIn) : null;
+          const timeLabel = startT ? `${String(startT.getHours()).padStart(2,'0')}:${String(startT.getMinutes()).padStart(2,'0')}` : '';
+          c.className='ac ao';
+          c.innerHTML = `<div style="font-size:9px;color:var(--tx3);">${timeLabel}</div><div style="font-size:10px;font-weight:600;">${h>0?h+'시간 ':''}${mm}분</div>`;
+        } else {
+          c.className='ac ao'; c.textContent='✓'; c.style.fontSize='12px';
+        }
       } else { c.className='ac ax'; c.textContent='-'; }
       g.appendChild(c);
     });
@@ -3193,8 +3231,44 @@ function filterMembers(q) {
   });
 }
 
+
+// ── 온라인 팩션원 목록 ────────────────────────
+function openOnlineList() {
+  renderOnlineList();
+  om('moOnline');
+}
+function renderOnlineList() {
+  const body = document.getElementById('onlineListBody');
+  const sub  = document.getElementById('onlineModalSub');
+  if(!body) return;
+  const list = window._onlineList || [];
+  if(sub) sub.textContent = `현재 ${list.length}명 접속 중`;
+  if(list.length === 0) {
+    body.innerHTML = '<div style="text-align:center;color:var(--tx3);padding:20px;">접속 중인 팩션원이 없습니다.</div>';
+    return;
+  }
+  // 최근 접속 순 정렬
+  const sorted = [...list].sort((a,b)=>(b.ts||0)-(a.ts||0));
+  body.innerHTML = sorted.map(o => {
+    const isMe = o.uid === ME.uid;
+    const avatar = o.avatar ? `<img src="${esc(o.avatar)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : esc(o.name?.[0])||'?';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);">
+      <div style="position:relative;width:34px;height:34px;flex-shrink:0;">
+        <div style="width:34px;height:34px;border-radius:50%;background:#5865F2;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;overflow:hidden;">${avatar}</div>
+        <div style="position:absolute;bottom:0;right:0;width:10px;height:10px;background:#22c55e;border:2px solid var(--bg2);border-radius:50%;"></div>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;">${esc(o.name)||'-'}${isMe?' <span style="font-size:10px;color:var(--p);">(나)</span>':''}</div>
+        <div style="font-size:11px;color:var(--tx3);">${esc(o.rank)||''}</div>
+      </div>
+      <span style="font-size:10px;color:#22c55e;font-weight:600;">● 온라인</span>
+    </div>`;
+  }).join('');
+}
+
 window.om=om; window.cm=cm; window.toast=toast;
 window.showLoading=showLoading; window.hideLoading=hideLoading;
+window.openOnlineList=openOnlineList; window.renderOnlineList=renderOnlineList;
 window.saveProfile=saveProfile; window.openEditProfile=openEditProfile;
 window.saveFactionInfo=saveFactionInfo; window.saveSettings=saveSettings; window.loadSettingsToggles=loadSettingsToggles;
 window.openMemberManage=openMemberManage; window.mmChangeRank=mmChangeRank; window.mmKick=mmKick; window.mmTransfer=mmTransfer;
