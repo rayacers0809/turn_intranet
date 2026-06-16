@@ -1462,6 +1462,9 @@ async function loadIntranet(factionData, memberData, userData) {
   // 실시간 리스너 시작 (이후 모든 변경 자동 반영)
   setupRealtimeListeners();
 
+  // 저장된 개인 테마 복원
+  loadMyTheme();
+
   // 출근 상태 복원 (오늘 미퇴근 세션 있으면 출근 중)
   try {
     const today0 = new Date().toISOString().split('T')[0];
@@ -2631,6 +2634,7 @@ function lighten(h,a=25){let[r,g,b]=h2r(h);return'#'+[r+a,g+a,b+a].map(x=>Math.m
 
 function applyColor(hex,el) {
   if(!/^#[0-9A-Fa-f]{6}$/.test(hex)) return;
+  window._curColor = hex;
   const[r,g,b]=h2r(hex), ro=document.documentElement;
   ro.style.setProperty('--p',hex); ro.style.setProperty('--pd',darken(hex)); ro.style.setProperty('--pl',lighten(hex));
   ro.style.setProperty('--pbg',`rgba(${r},${g},${b},.1)`); ro.style.setProperty('--pbd',`rgba(${r},${g},${b},.25)`);
@@ -2666,8 +2670,45 @@ function setMode(m){
 }
 function openCz(){document.getElementById('cz').classList.add('open');document.getElementById('czOv').classList.add('open');}
 function closeCz(){document.getElementById('cz').classList.remove('open');document.getElementById('czOv').classList.remove('open');}
-function saveCz(){toast('테마 저장 완료!','success');closeCz();}
-function resetCz(){applyColor('#4F8EF7',document.querySelector('.cpx'));setMode('light');toast('초기화되었습니다.','info');}
+
+// ── 저장된 테마 복원 ──────────────────────────
+async function loadMyTheme() {
+  if(!auth.currentUser) return;
+  try {
+    const uDoc = await getDoc(doc(db,'users',auth.currentUser.uid));
+    if(uDoc.exists() && uDoc.data().uiTheme) {
+      const t = uDoc.data().uiTheme;
+      window._myTheme = t;
+      if(t.color && /^#[0-9A-Fa-f]{6}$/.test(t.color)) applyColor(t.color, null);
+      if(t.mode) setMode(t.mode);
+    }
+  } catch(e){ console.warn('[테마 복원]', e); }
+}
+
+async function saveCz(){
+  if(!auth.currentUser){ toast('로그인이 필요합니다.','error'); return; }
+  // 현재 적용된 색상 (applyColor가 추적). 없으면 CSS 변수에서
+  let color = window._curColor;
+  if(!color || !/^#[0-9A-Fa-f]{6}$/.test(color)) {
+    const raw = getComputedStyle(document.documentElement).getPropertyValue('--p').trim();
+    color = raw.startsWith('#') ? raw : '#4F8EF7';
+  }
+  const theme = { color, mode: curTheme || 'light' };
+  try {
+    await setDoc(doc(db,'users',auth.currentUser.uid),{ uiTheme: theme },{ merge:true });
+    window._myTheme = theme;
+    toast('테마 저장 완료! 다음 접속에도 유지됩니다.','success');
+    closeCz();
+  } catch(err){ console.error('[테마저장]',err); toast('저장 실패: '+err.message,'error'); }
+}
+async function resetCz(){
+  applyColor('#4F8EF7',document.querySelector('.cpx'));
+  setMode('light');
+  if(auth.currentUser){
+    try { await setDoc(doc(db,'users',auth.currentUser.uid),{ uiTheme:{ color:'#4F8EF7', mode:'light' } },{ merge:true }); } catch(e){}
+  }
+  toast('초기화되었습니다.','info');
+}
 
 // ══════════════════════════════════════════
 // 네비게이션
@@ -3269,6 +3310,7 @@ function renderOnlineList() {
 window.om=om; window.cm=cm; window.toast=toast;
 window.showLoading=showLoading; window.hideLoading=hideLoading;
 window.openOnlineList=openOnlineList; window.renderOnlineList=renderOnlineList;
+window.saveCz=saveCz; window.loadMyTheme=loadMyTheme;
 window.saveProfile=saveProfile; window.openEditProfile=openEditProfile;
 window.saveFactionInfo=saveFactionInfo; window.saveSettings=saveSettings; window.loadSettingsToggles=loadSettingsToggles;
 window.openMemberManage=openMemberManage; window.mmChangeRank=mmChangeRank; window.mmKick=mmKick; window.mmTransfer=mmTransfer;
@@ -3302,6 +3344,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Firebase Auth 상태 감지 → 랜딩 UI 업데이트
   onAuthStateChanged(auth, async (user) => {
+    if (user) { loadMyTheme(); }
     if (user && !window._discordProfile) {
       // Firestore에서 프로필 로드
       try {
