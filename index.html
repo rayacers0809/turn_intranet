@@ -1032,7 +1032,7 @@ input,textarea,select{font-family:var(--font);}
 // Firebase SDK
 // ══════════════════════════════════════════
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, getDocs, collection, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, increment as fsIncrement } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, getDocs, collection, addDoc, updateDoc, deleteDoc, query, where, orderBy, limit, serverTimestamp, increment as fsIncrement, runTransaction, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, signInWithCustomToken, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getDatabase, ref as dbRef, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
@@ -1101,6 +1101,9 @@ let rpResult = 'win';
 let currentZone = null;
 let currentItem = null;
 let trLimitOk = true;
+let trProcessing = false;
+let rpProcessing = false;
+let ntProcessing = false;
 let promoteSelMember = null;
 let promoteSelRank = null;
 let selectedClass = '고위직';
@@ -1442,8 +1445,20 @@ async function loadIntranet(factionData, memberData, userData) {
   await loadAllData();
 }
 
-async function loadAllData() {
+let _lastLoadTime = 0;
+let _loadPending = false;
+async function loadAllData(force = false) {
   if (!ME.factionId) return;
+  // 1초 내 중복 호출 방지 (force=true면 무시)
+  const now2 = Date.now();
+  if (!force && now2 - _lastLoadTime < 800) {
+    if (!_loadPending) {
+      _loadPending = true;
+      setTimeout(() => { _loadPending = false; loadAllData(true); }, 800);
+    }
+    return;
+  }
+  _lastLoadTime = now2;
   const fid = ME.factionId;
   try {
     // 모든 컬렉션 병렬 로드
@@ -1453,11 +1468,11 @@ async function loadAllData() {
     ] = await Promise.all([
       getDocs(collection(db,'factions',fid,'members')),
       getDocs(query(collection(db,'factions',fid,'ranks'), orderBy('order','asc'))),
-      getDocs(query(collection(db,'factions',fid,'notices'), orderBy('createdAt','desc'))),
-      getDocs(query(collection(db,'factions',fid,'reports_rp'), orderBy('createdAt','desc'))),
-      getDocs(query(collection(db,'factions',fid,'reports_trade'), orderBy('createdAt','desc'))),
-      getDocs(query(collection(db,'factions',fid,'transactions'), orderBy('createdAt','desc'))),
-      getDocs(query(collection(db,'factions',fid,'warnings'), orderBy('createdAt','desc'))),
+      getDocs(query(collection(db,'factions',fid,'notices'), orderBy('createdAt','desc'), limit(50))),
+      getDocs(query(collection(db,'factions',fid,'reports_rp'), orderBy('createdAt','desc'), limit(100))),
+      getDocs(query(collection(db,'factions',fid,'reports_trade'), orderBy('createdAt','desc'), limit(100))),
+      getDocs(query(collection(db,'factions',fid,'transactions'), orderBy('createdAt','desc'), limit(50))),
+      getDocs(query(collection(db,'factions',fid,'warnings'), orderBy('createdAt','desc'), limit(50))),
       getDocs(collection(db,'factions',fid,'attendance')),
       getDocs(collection(db,'factions',fid,'zones')),
       getDocs(collection(db,'factions',fid,'items')),
@@ -1466,7 +1481,7 @@ async function loadAllData() {
     // 활동 로그 (인덱스 없을 수 있어서 별도)
     let logData = [];
     try {
-      const logSnap = await getDocs(query(collection(db,'factions',fid,'activity_logs'), orderBy('createdAt','desc')));
+      const logSnap = await getDocs(query(collection(db,'factions',fid,'activity_logs'), orderBy('createdAt','desc'), limit(30)));
       logData = logSnap.docs.map(d => ({ id:d.id, ...d.data() }));
     } catch(e){}
 
@@ -1797,6 +1812,7 @@ function updateRpScorePreview() {
 }
 
 async function submitRp() {
+  if (rpProcessing) return;
   const zoneId=document.getElementById('rpZone')?.value;
   const opponent=document.getElementById('rpOpponent')?.value.trim();
   const members=parseInt(document.getElementById('rpMembers')?.value)||1;
@@ -1818,6 +1834,7 @@ async function submitRp() {
     currentZone=null; document.getElementById('rpScorePreview').style.display='none'; selectRpResult('win');
     await loadAllData();
   } catch(err){ toast('제출 실패: '+err.message,'error'); }
+  finally { rpProcessing = false; }
 }
 
 async function approveRp(btn, id, authorId, score) {
@@ -1879,46 +1896,73 @@ async function checkDailyLimit(buyerId) {
   },500);
 }
 async function submitTr() {
-  const itemId=document.getElementById('trItem')?.value, buyerId=document.getElementById('trBuyerId')?.value.trim();
-  const qty=parseInt(document.getElementById('trQty')?.value)||1, peer=document.getElementById('trPeer')?.value.trim();
-  const note=document.getElementById('trNote')?.value.trim()||'';
+  if (trProcessing) return;
+  const itemId  = document.getElementById('trItem')?.value;
+  const buyerId = document.getElementById('trBuyerId')?.value.trim();
+  const qty     = parseInt(document.getElementById('trQty')?.value) || 1;
+  const peer    = document.getElementById('trPeer')?.value.trim();
+  const note    = document.getElementById('trNote')?.value.trim() || '';
   if(!itemId){toast('물품을 선택해주세요.','error');return;}
   if(!buyerId){toast('구매자 고유번호를 입력해주세요.','error');return;}
   if(!peer){toast('구매자 닉네임을 입력해주세요.','error');return;}
-  // 한도 재확인
-  if(currentItem && document.getElementById('trBuyerId')?.value) {
-    const buyerId2 = document.getElementById('trBuyerId').value.trim();
-    const today2 = new Date().toISOString().split('T')[0];
-    try {
-      const limitSnap = await getDocs(query(
-        collection(db,'factions',ME.factionId,'reports_trade'),
-        where('buyerId','==',String(buyerId2)),
-        where('itemId','==',currentItem.id),
-        where('date','==',today2)
-      ));
-      const usedQty2 = limitSnap.docs.reduce((s,d)=>s+(d.data().qty||1),0);
-      if(usedQty2 >= currentItem.dailyLimit) {
-        toast(`일일 한도 초과! (${usedQty2}/${currentItem.dailyLimit}개)`,'error');
-        return;
-      }
-    } catch(e) {}
-  }
+  if(qty < 1){toast('수량은 1개 이상이어야 합니다.','error');return;}
   if(!ME.factionId) return;
-  const item=ITEMS.find(x=>x.id===itemId), amount=(item?.price||0)*qty, today=new Date().toISOString().split('T')[0];
+
+  const item = ITEMS.find(x=>x.id===itemId);
+  if(!item){toast('물품 정보를 찾을 수 없습니다.','error');return;}
+  const amount = (item.price||0)*qty;
+  const today  = new Date().toISOString().split('T')[0];
+
+  trProcessing = true;
+  const btn = document.getElementById('trSubmitBtn');
+  if(btn){ btn.disabled=true; btn.style.opacity='.5'; }
+
   try {
+    // 한도 검사 + 제출을 원자적으로 처리하기 위해 최신 데이터 재확인
+    const dayQuery = query(
+      collection(db,'factions',ME.factionId,'reports_trade'),
+      where('buyerId','==',String(buyerId)),
+      where('itemId','==',item.id),
+      where('date','==',today)
+    );
+    const daySnap = await getDocs(dayQuery);
+    // rejected 제외하고 합산
+    const usedQty = daySnap.docs
+      .filter(d => d.data().status !== 'rejected')
+      .reduce((s,d)=>s+(d.data().qty||1),0);
+
+    if (usedQty + qty > item.dailyLimit) {
+      toast(`일일 한도 초과! 현재 ${usedQty}/${item.dailyLimit}개, ${qty}개 추가 불가`,'error');
+      return;
+    }
+
     await addDoc(collection(db,'factions',ME.factionId,'reports_trade'),{
-      authorId:ME.uid,authorName:ME.name,itemId,itemName:item?.name||'',
-      buyerId:String(buyerId),buyerName:peer,qty,amount,note,date:today,status:'pending',createdAt:serverTimestamp(),
+      authorId:ME.uid, authorName:ME.name, itemId:item.id, itemName:item.name,
+      buyerId:String(buyerId), buyerName:peer, qty, amount, note, date:today,
+      status:'pending', createdAt:serverTimestamp(),
     });
-    await updateDoc(doc(db,'factions',ME.factionId,'members',ME.uid),{trade_count:fsIncrement(qty)});
-    cm('moTr'); toast(`거래 보고서 제출! (${item?.name} x${qty} = ₩${amount.toLocaleString()})`,'success');
+    await updateDoc(doc(db,'factions',ME.factionId,'members',ME.uid),{ trade_count:fsIncrement(qty) });
+    await addDoc(collection(db,'factions',ME.factionId,'activity_logs'),{
+      type:'trade_submitted', message:`${ME.name}님이 거래 보고서를 제출했습니다. (${item.name} ${qty}개)`,
+      userId:ME.uid, createdAt:serverTimestamp(),
+    });
+
+    cm('moTr');
+    toast(`거래 보고서 제출! (${item.name} x${qty} = ₩${amount.toLocaleString()})`,'success');
     ['trItem','trBuyerId','trPeer','trNote'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     document.getElementById('trQty').value='1';
-    document.getElementById('trItemInfo').style.display='none'; document.getElementById('trTotalPreview').style.display='none';
-    document.getElementById('trLimitStatus').innerHTML=''; currentItem=null; trLimitOk=true;
-    const btn=document.getElementById('trSubmitBtn'); if(btn){btn.disabled=false;btn.style.opacity='1';}
+    document.getElementById('trItemInfo').style.display='none';
+    document.getElementById('trTotalPreview').style.display='none';
+    document.getElementById('trLimitStatus').innerHTML='';
+    currentItem=null; trLimitOk=true;
     await loadAllData();
-  } catch(err){ toast('제출 실패: '+err.message,'error'); }
+  } catch(err){
+    console.error('[거래 제출 오류]', err.code, err.message);
+    toast('제출 실패: '+err.message,'error');
+  } finally {
+    trProcessing = false;
+    if(btn){ btn.disabled=false; btn.style.opacity='1'; }
+  }
 }
 function filterTr(status) {
   document.querySelectorAll('#trBody tr').forEach(tr=>{
@@ -1932,6 +1976,8 @@ function filterTr(status) {
 // 공지사항
 // ══════════════════════════════════════════
 async function submitNt() {
+  if(ntProcessing) return;
+  ntProcessing = true;
   const t=document.getElementById('ntTitle')?.value.trim(), cont=document.getElementById('ntCont')?.value.trim();
   const type=document.getElementById('ntType')?.value||'공지';
   if(!t){toast('제목을 입력해주세요.','error');return;}
@@ -1942,8 +1988,10 @@ async function submitNt() {
       type:tm[type]||'notice',title:t,content:cont||'',authorId:ME.uid,authorName:`${ME.rankName} ${ME.name}`,createdAt:serverTimestamp(),
     });
     cm('moNt'); toast('공지가 등록되었습니다!','success');
+    document.getElementById('ntTitle').value=''; document.getElementById('ntCont').value='';
     await loadAllData();
   } catch(err){ toast('오류: '+err.message,'error'); }
+  finally { ntProcessing = false; }
 }
 
 // ══════════════════════════════════════════
@@ -2283,10 +2331,23 @@ async function toggleCI() {
 
   const now = new Date();
   const today = now.toISOString().split('T')[0];
-  const attRef = doc(db,'factions',ME.factionId,'attendance',`${ME.uid}_${today}`);
+  let attRef = doc(db,'factions',ME.factionId,'attendance',`${ME.uid}_${today}`);
 
   try {
-    const snap = await getDoc(attRef);
+    let snap = await getDoc(attRef);
+    // 자정 넘김 처리: 오늘 기록에 열린 세션 없으면 어제 기록 확인
+    if (snap.exists()) {
+      const todaySessions = snap.data().sessions || [];
+      const todayOpen = todaySessions.map(s=>s.checkOut).lastIndexOf(null);
+      if (todayOpen === -1) {
+        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+        const yRef = doc(db,'factions',ME.factionId,'attendance',`${ME.uid}_${yesterday}`);
+        const ySnap = await getDoc(yRef);
+        if (ySnap.exists() && (ySnap.data().sessions||[]).some(s=>!s.checkOut)) {
+          attRef = yRef; snap = ySnap; // 어제 열린 세션 퇴근 처리
+        }
+      }
+    }
     const data = snap.exists() ? snap.data() : null;
     let sessions = data?.sessions ? [...data.sessions] : [];
     const openIdx = sessions.map(s=>s.checkOut).lastIndexOf(null);
