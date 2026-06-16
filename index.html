@@ -429,6 +429,26 @@ input,textarea,select{font-family:var(--font);}
 </div>
 
 <!-- MODALS -->
+<!-- ── 직급 수정 모달 ── -->
+<div class="mo" id="moRankEdit">
+<div class="md wide">
+  <div class="mh"><h2>🏅 직급 수정</h2><p>직급 정보와 권한을 수정하세요.</p></div>
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    <div class="fi"><label>직급명</label><input class="inp" id="editRankName" placeholder="직급명"></div>
+    <div class="fi"><label>직급 클래스</label>
+      <div class="class-tabs" id="editClassTabs">
+        <div class="ctab" data-cls="고위직" onclick="selectEditClass(this)">👑 고위직</div>
+        <div class="ctab" data-cls="간부직" onclick="selectEditClass(this)">⭐ 간부직</div>
+        <div class="ctab" data-cls="일반직" onclick="selectEditClass(this)">👤 일반직</div>
+        <div class="ctab" data-cls="특수직" onclick="selectEditClass(this)">🔷 특수직</div>
+      </div>
+    </div>
+    <div class="fi"><label>권한 설정</label><div class="perm-grid" id="editPermGrid"></div></div>
+  </div>
+  <div class="mf"><button class="btn g sm" onclick="cm('moRankEdit')">취소</button><button class="btn p sm" onclick="saveRankEdit()">저장 →</button></div>
+</div>
+</div>
+
 <!-- ── 팩션원 관리 모달 ── -->
 <div class="mo" id="moMemberManage">
 <div class="md">
@@ -839,8 +859,11 @@ input,textarea,select{font-family:var(--font);}
       <div class="page" id="page-attendance">
         <div class="card">
           <div class="ch">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <span style="font-size:14px;font-weight:600;" id="attWeekLabel">이번 주</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button class="btn g sm" onclick="changeWeek(-1)" style="padding:5px 10px;">← 이전주</button>
+              <span style="font-size:14px;font-weight:600;min-width:200px;text-align:center;" id="attWeekLabel">이번 주</span>
+              <button class="btn g sm" onclick="changeWeek(1)" style="padding:5px 10px;">다음주 →</button>
+              <button class="btn g sm" onclick="changeWeek(0)" style="padding:5px 10px;">오늘</button>
             </div>
             <button class="btn p sm" onclick="toggleCI()">출근/퇴근</button>
           </div>
@@ -885,7 +908,7 @@ input,textarea,select{font-family:var(--font);}
             <button class="btn g sm" onclick="filterTr('pending')">감사 대기</button>
           </div>
           <div style="overflow-x:auto;"><table class="tbl">
-            <thead><tr><th>#</th><th>작성자</th><th>물품</th><th>구매자ID</th><th>수량</th><th>금액</th><th>한도</th><th>시간</th><th>상태</th></tr></thead>
+            <thead><tr><th>#</th><th>작성자</th><th>물품</th><th>구매자ID</th><th>수량</th><th>금액</th><th>한도</th><th>시간</th><th>상태</th><th></th></tr></thead>
             <tbody id="trBody"></tbody>
           </table></div>
         </div>
@@ -898,7 +921,7 @@ input,textarea,select{font-family:var(--font);}
           <div class="mem-tab" id="mtab-apply" onclick="switchMemTab('apply')">📨 가입 신청 <span style="background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px;" id="applyBadge">0</span></div>
           <div class="mem-tab" id="mtab-resign" onclick="switchMemTab('resign')">📝 사직서 <span style="background:var(--warning);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px;" id="resignBadge">0</span></div>
         </div>
-        <div id="mem-list"><div id="memberList"></div></div>
+        <div id="mem-list"><input class="sbi" style="width:100%;margin-bottom:12px;" placeholder="🔍 팩션원 이름 검색..." oninput="filterMembers(this.value)"><div id="memberList"></div></div>
         <div id="mem-apply" style="display:none;"><div id="applyList"><div style="text-align:center;padding:30px;color:var(--tx3);">가입 신청이 없습니다.</div></div></div>
         <div id="mem-resign" style="display:none;"><div id="resignList"><div style="text-align:center;padding:30px;color:var(--tx3);">사직서가 없습니다.</div></div></div>
       </div>
@@ -1390,11 +1413,12 @@ async function loadIntranet(factionData, memberData, userData) {
       if (open0) {
         isCI = true;
         ciStartTime = new Date(open0.checkIn).getTime();
-        const btn0 = document.getElementById('ciBtn');
-        const st0  = document.getElementById('ciS');
         const t0 = new Date(open0.checkIn);
-        if(btn0){ btn0.textContent='퇴근하기'; btn0.classList.add('out'); }
-        if(st0){ st0.textContent=`${String(t0.getHours()).padStart(2,'0')}:${String(t0.getMinutes()).padStart(2,'0')} 출근 ●`; st0.style.color='var(--success)'; }
+        const tStr = `${String(t0.getHours()).padStart(2,'0')}:${String(t0.getMinutes()).padStart(2,'0')}`;
+        updateCIUI(true, attDoc0.data().totalMinutes||0, tStr);
+      } else if (sessions0.length > 0) {
+        // 오늘 출근했다가 퇴근한 상태
+        updateCIUI(false, attDoc0.data().totalMinutes||0, null);
       }
     }
   } catch(e) { console.warn('[출근 상태 복원]', e); }
@@ -1535,7 +1559,7 @@ function renderDashboard(membersSnap, rpData, logData) {
         const pcls=i===0?'p1':i===1?'p2':i===2?'p3':'';
         const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1;
         const div=document.createElement('div'); div.className='rki'+(i===0?' top':'');
-        div.innerHTML=`<div class="rkp ${pcls}">${medal}</div><div class="rka">${d.avatar?`<img src="${d.avatar}">`:(d.username?.[0]||'?')}</div><div class="rkn">${d.username||'-'}${isMe?'<span style="font-size:10px;color:var(--p);margin-left:4px;">(나)</span>':''}</div><div class="rks">${d.rp_score||0}점</div>`;
+        div.innerHTML=`<div class="rkp ${pcls}">${medal}</div><div class="rka">${d.avatar?`<img src="${d.avatar}">`:(d.username?.[0]||'?')}</div><div class="rkn">${esc(d.username)||'-'}${isMe?'<span style="font-size:10px;color:var(--p);margin-left:4px;">(나)</span>':''}</div><div class="rks">${d.rp_score||0}점</div>`;
         rkBoard.appendChild(div);
       });
     }
@@ -1549,7 +1573,7 @@ function renderDashboard(membersSnap, rpData, logData) {
       const dotMap={faction_created:'s',join_apply:'',member_approved:'s',rp_submitted:'',rp_approved:'s',trade_submitted:'',warning_given:'d',vault_transaction:'s'};
       logData.slice(0,8).forEach(l => {
         const div=document.createElement('div'); div.className='act';
-        div.innerHTML=`<div class="adot ${dotMap[l.type]||''}"></div><div class="at">${l.message||'활동 기록'}</div><div class="atm">${timeAgo(l.createdAt?.toDate?.()?.getTime()||Date.now())}</div>`;
+        div.innerHTML=`<div class="adot ${dotMap[l.type]||''}"></div><div class="at">${esc(l.message)||'활동 기록'}</div><div class="atm">${timeAgo(l.createdAt?.toDate?.()?.getTime()||Date.now())}</div>`;
         actEl.appendChild(div);
       });
     }
@@ -1563,7 +1587,7 @@ function renderNotices(notices) {
   const tm={notice:'nt-notice',urgent:'nt-urgent',event:'nt-event'}, tl={notice:'공지',urgent:'긴급',event:'이벤트'};
   notices.forEach(n => {
     const d=document.createElement('div'); d.className='nt-item';
-    d.innerHTML=`<span class="nt-type ${tm[n.type]||'nt-notice'}">${tl[n.type]||'공지'}</span><div class="nt-body"><div class="nt-title">${n.title||'-'}</div><div class="nt-meta">${n.authorName||'-'} · ${n.createdAt?.toDate?.()?.toLocaleDateString('ko-KR')||'-'}</div></div>`;
+    d.innerHTML=`<span class="nt-type ${tm[n.type]||'nt-notice'}">${tl[n.type]||'공지'}</span><div class="nt-body"><div class="nt-title">${esc(n.title)||'-'}</div><div class="nt-meta">${esc(n.authorName)||'-'} · ${n.createdAt?.toDate?.()?.toLocaleDateString('ko-KR')||'-'}</div>${n.content?`<div style="font-size:12px;color:var(--tx2);margin-top:6px;line-height:1.6;">${esc(n.content)}</div>`:''}</div>${can('notice_write')?`<button class="btn d sm" style="padding:3px 8px;font-size:11px;flex-shrink:0;" onclick="deleteNotice('${n.id}')">삭제</button>`:''}`;
     el.appendChild(d);
   });
   const badge=document.getElementById('ntBadge'); if(badge) badge.textContent=notices.length;
@@ -1573,14 +1597,19 @@ function renderAttendance(members, attData) {
   const g = document.getElementById('attGrid'); if(!g) return; g.innerHTML='';
   const days=['월','화','수','목','금','토','일'];
   const week=[];
-  const now=new Date(); const dow=now.getDay(); const mon=new Date(now); mon.setDate(now.getDate()-(dow===0?6:dow-1));
+  window._lastAttMembers = members;
+  const now=new Date(); const dow=now.getDay(); const mon=new Date(now); mon.setDate(now.getDate()-(dow===0?6:dow-1)+(attWeekOffset*7));
   for(let i=0;i<7;i++){ const d=new Date(mon); d.setDate(mon.getDate()+i); week.push(d.toISOString().split('T')[0]); }
-  const label=document.getElementById('attWeekLabel'); if(label) label.textContent=`${week[0]} ~ ${week[6]}`;
+  const label=document.getElementById('attWeekLabel');
+  if(label) {
+    const wk = attWeekOffset===0?'이번 주':attWeekOffset===-1?'지난 주':attWeekOffset===1?'다음 주':`${attWeekOffset>0?'+':''}${attWeekOffset}주`;
+    label.textContent=`${wk} (${week[0].slice(5)} ~ ${week[6].slice(5)})`;
+  }
   // 헤더
   ['팩션원',...days].forEach(d=>{ const c=document.createElement('div'); c.className='ac ah'; c.textContent=d; g.appendChild(c); });
   members.forEach(m => {
     const nc=document.createElement('div'); nc.className='ac an';
-    nc.innerHTML=`<div class="uava" style="width:20px;height:20px;font-size:9px;">${m.username?.[0]||'?'}</div>${m.username||'-'}`;
+    nc.innerHTML=`<div class="uava" style="width:20px;height:20px;font-size:9px;">${esc(m.username?.[0])||'?'}</div>${esc(m.username)||'-'}`;
     g.appendChild(nc);
     week.forEach(date => {
       const att=attData.find(a=>a.userId===m.userId&&a.date===date);
@@ -1606,7 +1635,7 @@ function renderRp(rpData) {
     if(r.authorId===ME.uid){ if(r.result==='win') myWin++; else myLose++; }
     const res=r.result==='win'?'<span class="badge bbs">🏆 승리</span>':'<span class="badge bbd">💀 패배</span>';
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td style="font-family:var(--mono);color:var(--tx3);font-size:11px;">#${i+1}</td><td><b>${r.authorName||'-'}</b></td><td><span class="badge bbp">${r.zoneName||'-'}</span></td><td style="font-size:12px;color:var(--tx2);">${r.opponent||'-'}</td><td>${res}</td><td style="font-family:var(--mono);font-weight:700;color:var(--p);">+${r.score||0}점</td><td style="font-size:11px;color:var(--tx3);font-family:var(--mono);">${timeAgo(r.createdAt?.toDate?.()?.getTime())}</td><td><span class="badge ${cls}">${lbl}</span></td><td>${r.status==='pending'&&canApprove?`<button class="btn p sm" style="padding:3px 8px;font-size:11px;" onclick="approveRp(this,'${r.id}','${r.authorId}',${r.score||0})">승인</button>`:''}</td>`;
+    tr.innerHTML=`<td style="font-family:var(--mono);color:var(--tx3);font-size:11px;">#${i+1}</td><td><b>${esc(r.authorName)||'-'}</b></td><td><span class="badge bbp">${esc(r.zoneName)||'-'}</span></td><td style="font-size:12px;color:var(--tx2);">${esc(r.opponent)||'-'}</td><td>${res}</td><td style="font-family:var(--mono);font-weight:700;color:var(--p);">+${r.score||0}점</td><td style="font-size:11px;color:var(--tx3);font-family:var(--mono);">${timeAgo(r.createdAt?.toDate?.()?.getTime())}</td><td><span class="badge ${cls}">${lbl}</span></td><td>${r.status==='pending'&&canApprove?`<button class="btn p sm" style="padding:3px 8px;font-size:11px;" onclick="approveRp(this,'${r.id}','${r.authorId}',${r.score||0})">승인</button>`:''}</td>`;
     tb.appendChild(tr);
   });
   const myRpEl=document.getElementById('myRpScore'); if(myRpEl) myRpEl.textContent=ME.rp_score||0;
@@ -1624,7 +1653,8 @@ function renderTr(trData) {
     total+=r.amount||0; if(r.status==='approved')approved++; if(r.status==='pending')pending++;
     const item=ITEMS.find(x=>x.id===r.itemId);
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td style="font-family:var(--mono);color:var(--tx3);font-size:11px;">#${i+1}</td><td><b>${r.authorName||'-'}</b></td><td><span class="badge bbp">${r.itemName||'-'}</span></td><td style="font-family:var(--mono);font-size:12px;">${r.buyerId||'-'}</td><td style="font-family:var(--mono);">${r.qty||1}개</td><td style="font-family:var(--mono);color:var(--p);font-weight:700;">₩${(r.amount||0).toLocaleString()}</td><td>${item?`<span style="font-size:11px;color:var(--tx3);">${item.dailyLimit}개/일</span>`:'-'}</td><td style="font-size:11px;color:var(--tx3);font-family:var(--mono);">${timeAgo(r.createdAt?.toDate?.()?.getTime())}</td><td><span class="badge ${cls}">${lbl}</span></td>`;
+    const canAudit = can('trade_approve');
+    tr.innerHTML=`<td style="font-family:var(--mono);color:var(--tx3);font-size:11px;">#${i+1}</td><td><b>${esc(r.authorName)||'-'}</b></td><td><span class="badge bbp">${esc(r.itemName)||'-'}</span></td><td style="font-family:var(--mono);font-size:12px;">${r.buyerId||'-'}</td><td style="font-family:var(--mono);">${r.qty||1}개</td><td style="font-family:var(--mono);color:var(--p);font-weight:700;">₩${(r.amount||0).toLocaleString()}</td><td>${item?`<span style="font-size:11px;color:var(--tx3);">${item.dailyLimit}개/일</span>`:'-'}</td><td style="font-size:11px;color:var(--tx3);font-family:var(--mono);">${timeAgo(r.createdAt?.toDate?.()?.getTime())}</td><td><span class="badge ${cls}">${lbl}</span></td><td style="display:flex;gap:4px;">${r.status==='pending'&&canAudit?`<button class="btn p sm" style="padding:3px 7px;font-size:11px;" onclick="approveTr('${r.id}')">승인</button><button class="btn d sm" style="padding:3px 7px;font-size:11px;" onclick="rejectTr('${r.id}')">거절</button>`:''}</td>`;
     tb.appendChild(tr);
   });
   const fmt=n=>n>=1000000?(n/1000000).toFixed(1)+'M':n>=1000?(n/1000).toFixed(0)+'K':n;
@@ -1640,7 +1670,7 @@ function renderMembers(membersSnap) {
     const d=m.data(); const isMe=m.id===ME.uid;
     const div=document.createElement('div'); div.className='mr';
     div.dataset.memberId = m.id;
-    div.innerHTML=`<div class="ma">${d.avatar?`<img src="${d.avatar}">`:(d.username?.[0]||'?')}</div><div style="flex:1;"><div class="mn">${d.username||'-'}${isMe?'<span style="font-size:10px;color:var(--p);margin-left:4px;">(나)</span>':''}</div><div style="display:flex;align-items:center;gap:5px;"><div class="mrk">${d.rankName||'-'}</div><span class="cls-badge cls-${d.rankClass||'일반직'}">${d.rankClass||'일반직'}</span></div></div><div class="mst"><div class="ms"><div class="v">${d.rp_score||0}</div><div class="l">RP</div></div><div class="ms"><div class="v">${d.trade_count||0}</div><div class="l">거래</div></div><div class="ms"><div class="v" style="color:${(d.warn_count||0)>0?'var(--danger)':'var(--success)'};">${d.warn_count||0}</div><div class="l">경고</div></div></div><div class="mact">${isMe?`<button class="btn p sm" style="padding:4px 8px;font-size:11px;" onclick="om('moEditProfile')">프로필 편집</button>`:''}${can('member_manage')&&!isMe?`<button class="btn g sm" style="padding:4px 8px;font-size:11px;" onclick="openMemberManage('${m.id}','${(d.username||'').replace(/'/g,'')}')">관리</button>`:''}</div>`;
+    div.innerHTML=`<div class="ma">${d.avatar?`<img src="${d.avatar}">`:(d.username?.[0]||'?')}</div><div style="flex:1;"><div class="mn">${esc(d.username)||'-'}${isMe?'<span style="font-size:10px;color:var(--p);margin-left:4px;">(나)</span>':''}</div><div style="display:flex;align-items:center;gap:5px;"><div class="mrk">${esc(d.rankName)||'-'}</div><span class="cls-badge cls-${d.rankClass||'일반직'}">${d.rankClass||'일반직'}</span></div></div><div class="mst"><div class="ms"><div class="v">${d.rp_score||0}</div><div class="l">RP</div></div><div class="ms"><div class="v">${d.trade_count||0}</div><div class="l">거래</div></div><div class="ms"><div class="v" style="color:${(d.warn_count||0)>0?'var(--danger)':'var(--success)'};">${d.warn_count||0}</div><div class="l">경고</div></div></div><div class="mact">${isMe?`<button class="btn p sm" style="padding:4px 8px;font-size:11px;" onclick="om('moEditProfile')">프로필 편집</button>`:''}${can('member_manage')&&!isMe?`<button class="btn g sm" style="padding:4px 8px;font-size:11px;" onclick="openMemberManage('${m.id}','${(d.username||'').replace(/'/g,'')}')">관리</button>`:''}</div>`;
     el.appendChild(div);
   });
 }
@@ -1650,7 +1680,7 @@ function renderApplyList() {
   if(!APPLY_DATA.length){ el.innerHTML='<div style="text-align:center;padding:30px;color:var(--tx3);">가입 신청이 없습니다.</div>'; return; }
   APPLY_DATA.forEach(a => {
     const d=document.createElement('div'); d.className='apply-card';
-    d.innerHTML=`<div class="ac-head"><div class="ac-ava">${a.username?.[0]||'?'}</div><div style="flex:1;"><div class="ac-name">${a.username||'-'}</div><div class="ac-meta">고유번호: ${a.gameId||'-'} · ${a.joinedAt?.toDate?.()?.toLocaleDateString('ko-KR')||'-'} 신청</div></div></div><div class="ac-msg">"${a.bio||'-'}"</div><div class="ac-actions"><button class="btn p sm" onclick="approveApply('${a.id}','${a.username}')">✅ 승인</button><button class="btn d sm" onclick="rejectApply('${a.id}','${a.username}')">❌ 거절</button></div>`;
+    d.innerHTML=`<div class="ac-head"><div class="ac-ava">${a.username?.[0]||'?'}</div><div style="flex:1;"><div class="ac-name">${esc(a.username)||'-'}</div><div class="ac-meta">고유번호: ${a.gameId||'-'} · ${a.joinedAt?.toDate?.()?.toLocaleDateString('ko-KR')||'-'} 신청</div></div></div><div class="ac-msg">"${esc(a.bio)||'-'}"</div><div class="ac-actions"><button class="btn p sm" onclick="approveApply('${a.id}','${a.username}')">✅ 승인</button><button class="btn d sm" onclick="rejectApply('${a.id}','${a.username}')">❌ 거절</button></div>`;
     el.appendChild(d);
   });
   const badge=document.getElementById('applyBadge'); if(badge) badge.textContent=APPLY_DATA.length;
@@ -1661,7 +1691,7 @@ function renderResignList() {
   if(!RESIGN_DATA.length){ el.innerHTML='<div style="text-align:center;padding:30px;color:var(--tx3);">사직서가 없습니다.</div>'; return; }
   RESIGN_DATA.forEach(r => {
     const d=document.createElement('div'); d.className='resign-card';
-    d.innerHTML=`<div class="rc-name">${r.username||'-'} <span class="cls-badge cls-${r.rankClass||'일반직'}">${r.rankName||'-'}</span></div><div class="rc-reason">"${r.resignReason||'-'}"</div><div class="rc-meta">제출일: ${r.resignedAt?.toDate?.()?.toLocaleDateString('ko-KR')||'-'}</div><div class="rc-actions"><button class="btn d sm" onclick="acceptResign('${r.id}','${r.username}')">✅ 수리</button><button class="btn g sm" onclick="rejectResign('${r.id}','${r.username}')">↩️ 반려</button></div>`;
+    d.innerHTML=`<div class="rc-name">${esc(r.username)||'-'} <span class="cls-badge cls-${r.rankClass||'일반직'}">${r.rankName||'-'}</span></div><div class="rc-reason">"${esc(r.resignReason)||'-'}"</div><div class="rc-meta">제출일: ${r.resignedAt?.toDate?.()?.toLocaleDateString('ko-KR')||'-'}</div><div class="rc-actions"><button class="btn d sm" onclick="acceptResign('${r.id}','${r.username}')">✅ 수리</button><button class="btn g sm" onclick="rejectResign('${r.id}','${r.username}')">↩️ 반려</button></div>`;
     el.appendChild(d);
   });
   const badge=document.getElementById('resignBadge'); if(badge) badge.textContent=RESIGN_DATA.length;
@@ -1674,7 +1704,7 @@ function renderRanks() {
     const d=document.createElement('div'); d.className='rankrow';
     const permLabels=r.perms.slice(0,3).map(p=>`<span class="perm on">${PERMS[p]?.icon||''} ${PERMS[p]?.label||p}</span>`).join('');
     const more=r.perms.length>3?`<span class="perm">+${r.perms.length-3}</span>`:'';
-    d.innerHTML=`<div class="rnum">${r.n}</div><div class="rname">${r.name}</div><span class="cls-badge cls-${r.cls}">${r.cls}</span><div class="perms-wrap" style="flex:1;">${permLabels}${more}</div>${ME.isFounder?`<button class="btn g sm" style="padding:4px 8px;font-size:11px;">수정</button>`:''}`;
+    d.innerHTML=`<div class="rnum">${r.n}</div><div class="rname">${esc(r.name)}</div><span class="cls-badge cls-${r.cls}">${r.cls}</span><div class="perms-wrap" style="flex:1;">${permLabels}${more}</div>${ME.isFounder?`<div style="display:flex;gap:4px;"><button class="btn g sm" style="padding:4px 8px;font-size:11px;" onclick="openRankEdit('${r.id}')">수정</button><button class="btn d sm" style="padding:4px 8px;font-size:11px;" onclick="deleteRank('${r.id}','${r.name}')">삭제</button></div>`:''}`;
     el.appendChild(d);
   });
 }
@@ -1684,7 +1714,7 @@ function renderWarnings(warnData) {
   if(!warnData.length){ el.innerHTML='<div style="text-align:center;padding:30px;color:var(--tx3);">내부경고가 없습니다.</div>'; return; }
   warnData.forEach(w => {
     const d=document.createElement('div'); d.className='wc';
-    d.innerHTML=`<div class="wh"><span class="wn">${w.targetName||'-'}</span><span class="wlv">${w.level||'경고'}</span></div><div class="wr">${w.reason||'-'}</div><div class="wm">부여자: ${w.givenBy||'-'} · ${w.createdAt?.toDate?.()?.toLocaleDateString('ko-KR')||'-'}</div>`;
+    d.innerHTML=`<div class="wh"><span class="wn">${esc(w.targetName)||'-'}</span><span class="wlv">${w.level||'경고'}</span></div><div class="wr">${esc(w.reason)||'-'}</div><div class="wm">부여자: ${esc(w.givenBy)||'-'} · ${w.createdAt?.toDate?.()?.toLocaleDateString('ko-KR')||'-'}</div>`;
     el.appendChild(d);
   });
 }
@@ -1696,7 +1726,7 @@ function renderTx(txData) {
   txData.slice(0,20).forEach(t => {
     if(t.type==='in') income+=t.amount||0; else expense+=t.amount||0;
     const d=document.createElement('div'); d.className='txi';
-    d.innerHTML=`<div class="txic ${t.type}">${t.type==='in'?'💰':'💸'}</div><div class="txd"><div class="t">${t.description||'-'}</div><div class="d">${t.createdAt?.toDate?.()?.toLocaleDateString('ko-KR')||'-'}</div></div><div class="txa ${t.type}">${t.type==='in'?'+':'-'}₩${(t.amount||0).toLocaleString()}</div>`;
+    d.innerHTML=`<div class="txic ${t.type}">${t.type==='in'?'💰':'💸'}</div><div class="txd"><div class="t">${esc(t.description)||'-'}</div><div class="d">${t.createdAt?.toDate?.()?.toLocaleDateString('ko-KR')||'-'}</div></div><div class="txa ${t.type}">${t.type==='in'?'+':'-'}₩${(t.amount||0).toLocaleString()}</div>`;
     el.appendChild(d);
   });
   const e1=document.getElementById('vaultIncome'); if(e1) e1.textContent='₩'+(income/10000).toFixed(0)+'만';
@@ -2242,69 +2272,90 @@ function obPrev(){if(obStep>1){obStep--;renderOB();}}
 // 출근/퇴근
 // ══════════════════════════════════════════
 let ciStartTime = null;
+let ciProcessing = false;
 
 async function toggleCI() {
+  if (ciProcessing) return;          // 중복 클릭 방지
+  if (!ME.factionId || !ME.uid) { toast('팩션 정보 없음','error'); return; }
+  ciProcessing = true;
   const btn = document.getElementById('ciBtn');
-  const st  = document.getElementById('ciS');
+  if (btn) btn.disabled = true;
+
   const now = new Date();
   const today = now.toISOString().split('T')[0];
-  const timeStr = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-  const attDocId = `${ME.uid}_${today}`;
+  const attRef = doc(db,'factions',ME.factionId,'attendance',`${ME.uid}_${today}`);
 
-  if (!isCI) {
-    // 출근
-    isCI = true; ciStartTime = Date.now();
-    if(btn){ btn.textContent='퇴근하기'; btn.classList.add('out'); }
-    if(st){ st.textContent=timeStr+' 출근 ●'; st.style.color='var(--success)'; }
-    toast(`출근 완료! (${timeStr})`,'success');
-    if(ME.factionId && ME.uid) {
-      try {
-        // 기존 기록에 sessions 배열로 추가
-        const attRef = doc(db,'factions',ME.factionId,'attendance',attDocId);
-        const attDoc = await getDoc(attRef);
-        if(attDoc.exists()) {
-          // 기존 기록 있으면 새 세션 추가
-          const sessions = attDoc.data().sessions || [];
-          sessions.push({ checkIn: now.toISOString(), checkOut: null });
-          await updateDoc(attRef, { sessions, status:'O', username:ME.name });
-        } else {
-          // 없으면 새로 생성
-          await setDoc(attRef, {
-            userId:ME.uid, username:ME.name, date:today, status:'O',
-            sessions:[{ checkIn:now.toISOString(), checkOut:null }],
-            totalMinutes:0,
-          });
-        }
-      } catch(e){ console.error('[출근 오류]',e.code,e.message); toast('출근 저장 실패: '+e.message,'error'); }
+  try {
+    const snap = await getDoc(attRef);
+    const data = snap.exists() ? snap.data() : null;
+    let sessions = data?.sessions ? [...data.sessions] : [];
+    const openIdx = sessions.map(s=>s.checkOut).lastIndexOf(null);
+    const isCurrentlyIn = openIdx !== -1;
+
+    if (!isCurrentlyIn) {
+      // ── 출근 ──
+      sessions.push({ checkIn: now.toISOString(), checkOut: null });
+      const total = calcTotalMinutes(sessions);
+      if (snap.exists()) {
+        await updateDoc(attRef, { sessions, totalMinutes: total, status:'O', username: ME.name });
+      } else {
+        await setDoc(attRef, { userId: ME.uid, username: ME.name, date: today, status:'O', sessions, totalMinutes: total });
+      }
+      // 저장 성공 후 UI 갱신
+      isCI = true;
+      ciStartTime = now.getTime();
+      const t = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+      updateCIUI(true, total, t);
+      toast(`출근 완료! (${t})`,'success');
+    } else {
+      // ── 퇴근 ──
+      sessions[openIdx].checkOut = now.toISOString();
+      const total = calcTotalMinutes(sessions);
+      await updateDoc(attRef, { sessions, totalMinutes: total, status:'O' });
+      // 저장 성공 후 UI 갱신
+      isCI = false;
+      ciStartTime = null;
+      const sessionMin = Math.floor((now - new Date(sessions[openIdx].checkIn))/60000);
+      updateCIUI(false, total, null, sessionMin);
+      toast(`퇴근 완료! 이번 근무 ${fmtMin(sessionMin)}, 오늘 누적 ${fmtMin(total)} 🎉`,'success');
     }
-  } else {
-    // 퇴근
-    isCI = false;
-    const elapsed = ciStartTime ? Math.floor((Date.now()-ciStartTime)/60000) : 0;
-    if(btn){ btn.textContent='출근하기'; btn.classList.remove('out'); }
-    if(st){ st.textContent=`퇴근 완료 (${elapsed}분 근무)`; st.style.color=''; }
-    toast(`퇴근 완료! 오늘 ${elapsed}분 근무 🎉`,'success');
-    if(ME.factionId && ME.uid) {
-      try {
-        const attRef = doc(db,'factions',ME.factionId,'attendance',attDocId);
-        const attDoc = await getDoc(attRef);
-        if(attDoc.exists()) {
-          const sessions = attDoc.data().sessions || [];
-          // 마지막 열린 세션 닫기
-          const lastIdx = sessions.map(s=>s.checkOut).lastIndexOf(null);
-          if(lastIdx !== -1) sessions[lastIdx].checkOut = now.toISOString();
-          // 총 근무시간 계산
-          const total = sessions.reduce((sum,s)=>{
-            if(!s.checkIn||!s.checkOut) return sum;
-            return sum + Math.floor((new Date(s.checkOut)-new Date(s.checkIn))/60000);
-          },0);
-          await updateDoc(attRef, { sessions, totalMinutes:total, status:'O' });
-        }
-        await loadAllData();
-      } catch(e){ console.error('[퇴근 오류]',e.code,e.message); toast('퇴근 저장 실패: '+e.message,'error'); }
-    }
+    await loadAllData();
+  } catch(e) {
+    console.error('[출퇴근 오류]', e.code, e.message);
+    toast('저장 실패: '+e.message,'error');
+  } finally {
+    ciProcessing = false;
+    if (btn) btn.disabled = false;
   }
 }
+
+// 근무시간 합산 (분)
+function calcTotalMinutes(sessions) {
+  return sessions.reduce((sum,s)=>{
+    if(!s.checkIn || !s.checkOut) return sum;
+    return sum + Math.max(0, Math.floor((new Date(s.checkOut)-new Date(s.checkIn))/60000));
+  },0);
+}
+
+// 분 → "Xh Ym" 포맷
+function fmtMin(min) {
+  const h = Math.floor(min/60), m = min%60;
+  return h>0 ? `${h}시간 ${m}분` : `${m}분`;
+}
+
+// 출퇴근 UI 갱신
+function updateCIUI(checkedIn, totalMin, checkInTime, lastSessionMin) {
+  const btn = document.getElementById('ciBtn');
+  const st  = document.getElementById('ciS');
+  if (checkedIn) {
+    if(btn){ btn.textContent='퇴근하기'; btn.classList.add('out'); }
+    if(st){ st.textContent=`${checkInTime} 출근 ● (누적 ${fmtMin(totalMin)})`; st.style.color='var(--success)'; }
+  } else {
+    if(btn){ btn.textContent='출근하기'; btn.classList.remove('out'); }
+    if(st){ st.textContent=`퇴근 완료 · 오늘 ${fmtMin(totalMin)} 근무`; st.style.color=''; }
+  }
+}
+
 
 // ══════════════════════════════════════════
 // 테마/커스터마이저
@@ -2406,6 +2457,15 @@ function startClock(){setInterval(()=>{const el=document.getElementById('clk');i
 // ══════════════════════════════════════════
 // 토스트
 // ══════════════════════════════════════════
+
+// ── XSS 방어: HTML escape ─────────────────────
+function esc(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 function toast(msg,type='info'){
   const ic={success:'✅',error:'❌',info:'ℹ️',warn:'⚠️'};
   const w=document.getElementById('tw'); if(!w) return;
@@ -2426,6 +2486,27 @@ document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',e=>{if(e.
 // ══════════════════════════════════════════
 // window 전역 노출
 // ══════════════════════════════════════════
+
+
+// ── 랜딩 통계 로드 ────────────────────────────
+async function loadLandingStats() {
+  try {
+    const facSnap = await getDocs(collection(db, 'factions'));
+    const facCount = facSnap.size;
+    let memberTotal = 0;
+    facSnap.forEach(f => { memberTotal += (f.data().memberCount || 0); });
+    const f1 = document.getElementById('lstFactions');
+    const f2 = document.getElementById('lstMembers');
+    if (f1) f1.textContent = facCount;
+    if (f2) f2.textContent = memberTotal;
+  } catch(e) {
+    console.warn('[랜딩 통계]', e);
+    const f1 = document.getElementById('lstFactions');
+    const f2 = document.getElementById('lstMembers');
+    if (f1) f1.textContent = '0';
+    if (f2) f2.textContent = '0';
+  }
+}
 
 // ── 랜딩 로그인 상태 렌더 ─────────────────────
 function renderLanding() {
@@ -2469,7 +2550,7 @@ window.toggleTheme=toggleTheme; window.setMode=setMode;
 window.startLogin=startLogin; window.startOBLogin=startOBLogin;
 window.enterIntranet=enterIntranet; window.openOB=openOB;
 window.logout=logout; window.doLogout=doLogout;
-window.renderLanding=renderLanding;
+window.renderLanding=renderLanding; window.loadLandingStats=loadLandingStats;
 window.checkJoinCode=checkJoinCode; window.joinNext=joinNext;
 window.submitJoinApply=submitJoinApply; window.renderJoinPending=renderJoinPending;
 window.obNext=obNext; window.obPrev=obPrev; window.renderOB=renderOB;
@@ -2673,11 +2754,136 @@ async function submitWarn() {
   } catch(err){ toast('부여 실패: '+err.message,'error'); }
 }
 
+
+// ── 거래 보고서 승인/거절 ─────────────────────
+async function approveTr(id) {
+  if(!ME.factionId) return;
+  try {
+    const trRef = doc(db,'factions',ME.factionId,'reports_trade',id);
+    const trDoc = await getDoc(trRef);
+    await updateDoc(trRef,{ status:'approved' });
+    // 매출을 금고에 반영
+    const amount = trDoc.data()?.amount || 0;
+    if(amount > 0) {
+      await addDoc(collection(db,'factions',ME.factionId,'transactions'),{
+        type:'in', amount, description:`거래 매출 (${trDoc.data()?.itemName||'-'})`,
+        createdAt: serverTimestamp(),
+      });
+    }
+    toast('거래 승인 완료! 금고에 반영됨.','success');
+    await loadAllData();
+  } catch(err){ toast('승인 실패: '+err.message,'error'); }
+}
+
+async function rejectTr(id) {
+  if(!ME.factionId) return;
+  if(!confirm('이 거래 보고서를 거절하시겠습니까?')) return;
+  try {
+    await updateDoc(doc(db,'factions',ME.factionId,'reports_trade',id),{ status:'rejected' });
+    toast('거래 거절 처리.','info');
+    await loadAllData();
+  } catch(err){ toast('거절 실패: '+err.message,'error'); }
+}
+
+// ── 공지 삭제 ─────────────────────────────────
+async function deleteNotice(id) {
+  if(!ME.factionId) return;
+  if(!confirm('이 공지를 삭제하시겠습니까?')) return;
+  try {
+    await deleteDoc(doc(db,'factions',ME.factionId,'notices',id));
+    toast('공지 삭제 완료.','info');
+    await loadAllData();
+  } catch(err){ toast('삭제 실패: '+err.message,'error'); }
+}
+
+// ── 직급 수정 ─────────────────────────────────
+let editRankId = null;
+let editSelectedClass = '일반직';
+let editSelectedPerms = new Set();
+
+function openRankEdit(rankId) {
+  const rank = RANKS_DATA.find(r => r.id === rankId);
+  if(!rank) return;
+  editRankId = rankId;
+  editSelectedClass = rank.cls;
+  editSelectedPerms = new Set(rank.perms);
+  document.getElementById('editRankName').value = rank.name;
+  document.querySelectorAll('#editClassTabs .ctab').forEach(t => t.classList.toggle('on', t.dataset.cls===rank.cls));
+  renderEditPermGrid();
+  om('moRankEdit');
+}
+
+function selectEditClass(el) {
+  document.querySelectorAll('#editClassTabs .ctab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  editSelectedClass = el.dataset.cls;
+}
+
+function renderEditPermGrid() {
+  const grid = document.getElementById('editPermGrid');
+  if(!grid) return; grid.innerHTML='';
+  Object.entries(PERMS).forEach(([key,val])=>{
+    const on = editSelectedPerms.has(key);
+    const d = document.createElement('div');
+    d.className = 'perm-item'+(on?' on':'');
+    d.innerHTML = `<div class="pchk">${on?'✓':''}</div><span>${val.icon} ${val.label}</span>`;
+    d.onclick = () => { if(editSelectedPerms.has(key)) editSelectedPerms.delete(key); else editSelectedPerms.add(key); renderEditPermGrid(); };
+    grid.appendChild(d);
+  });
+}
+
+async function saveRankEdit() {
+  const name = document.getElementById('editRankName')?.value.trim();
+  if(!name) { toast('직급명을 입력해주세요.','error'); return; }
+  if(!editRankId || !ME.factionId) return;
+  try {
+    await updateDoc(doc(db,'factions',ME.factionId,'ranks',editRankId),{
+      name, rankClass: editSelectedClass, perms:[...editSelectedPerms],
+    });
+    cm('moRankEdit');
+    toast('직급 수정 완료!','success');
+    await loadAllData();
+  } catch(err){ toast('수정 실패: '+err.message,'error'); }
+}
+
+async function deleteRank(rankId, name) {
+  if(!ME.factionId) return;
+  if(!confirm(`'${name}' 직급을 삭제하시겠습니까?`)) return;
+  try {
+    await deleteDoc(doc(db,'factions',ME.factionId,'ranks',rankId));
+    toast('직급 삭제 완료.','info');
+    await loadAllData();
+  } catch(err){ toast('삭제 실패: '+err.message,'error'); }
+}
+
+// ── 출근부 주간 이동 ──────────────────────────
+let attWeekOffset = 0;
+function changeWeek(dir) {
+  if(dir === 0) attWeekOffset = 0;
+  else attWeekOffset += dir;
+  if(window._lastAttMembers && window._attDataCache) {
+    renderAttendance(window._lastAttMembers, window._attDataCache);
+  }
+}
+
+// ── 팩션원 검색 ───────────────────────────────
+function filterMembers(q) {
+  const query2 = (q||'').toLowerCase();
+  document.querySelectorAll('#memberList .mr').forEach(mr => {
+    const name = mr.querySelector('.mn')?.textContent.toLowerCase() || '';
+    mr.style.display = name.includes(query2) ? '' : 'none';
+  });
+}
+
 window.om=om; window.cm=cm; window.toast=toast;
 window.saveProfile=saveProfile; window.openEditProfile=openEditProfile;
 window.saveFactionInfo=saveFactionInfo; window.saveSettings=saveSettings; window.loadSettingsToggles=loadSettingsToggles;
 window.openMemberManage=openMemberManage; window.mmChangeRank=mmChangeRank; window.mmKick=mmKick;
 window.submitResign=submitResign; window.openWarnModal=openWarnModal; window.submitWarn=submitWarn;
+window.approveTr=approveTr; window.rejectTr=rejectTr; window.deleteNotice=deleteNotice;
+window.openRankEdit=openRankEdit; window.selectEditClass=selectEditClass; window.saveRankEdit=saveRankEdit; window.deleteRank=deleteRank;
+window.changeWeek=changeWeek; window.filterMembers=filterMembers;
+window.fmtMin=fmtMin; window.calcTotalMinutes=calcTotalMinutes; window.updateCIUI=updateCIUI;
 
 // ══════════════════════════════════════════
 // 초기화
@@ -2726,6 +2932,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 초기 렌더
   setTimeout(renderLanding, 100);
+  loadLandingStats();
 });
 
 </script>
