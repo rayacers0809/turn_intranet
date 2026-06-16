@@ -411,8 +411,6 @@ input,textarea,select{font-family:var(--font);}
   </div>
 </div>
 
-
-
 <!-- OAUTH -->
 <div id="screen-oauth" class="screen">
   <div class="oauth-card">
@@ -1450,6 +1448,9 @@ async function loadIntranet(factionData, memberData, userData) {
   hideLoading();
   toast(`환영합니다, ${ME.name}님! 👋`, 'success');
 
+  // 실시간 리스너 시작 (이후 모든 변경 자동 반영)
+  setupRealtimeListeners();
+
   // 출근 상태 복원 (오늘 미퇴근 세션 있으면 출근 중)
   try {
     const today0 = new Date().toISOString().split('T')[0];
@@ -1485,101 +1486,105 @@ async function loadIntranet(factionData, memberData, userData) {
       });
     } catch(e) { console.error('[온라인 오류]', e.code, e.message); }
   }
-
-  await loadAllData();
 }
 
+// ══════════════════════════════════════════
+// 실시간 리스너 (onSnapshot) - 자동 동기화
+// ══════════════════════════════════════════
+let _unsubscribers = [];
+
+function teardownListeners() {
+  _unsubscribers.forEach(u => { try { u(); } catch(e){} });
+  _unsubscribers = [];
+}
+
+function setupRealtimeListeners() {
+  if (!ME.factionId) return;
+  teardownListeners(); // 기존 리스너 정리
+  const fid = ME.factionId;
+
+  // 1. 팩션원 (멤버 변동 → 목록/신청/사직/순위/대시보드)
+  _unsubscribers.push(onSnapshot(collection(db,'factions',fid,'members'), (snap) => {
+    const approved = snap.docs.filter(d => d.data().status==='approved' || d.data().isFounder===true);
+    MEMBERS_CACHE = approved.map(d => ({ id:d.id, ...d.data() }));
+    window._approvedDocs = approved; // 대시보드용 docs 배열 캐시
+    APPLY_DATA  = snap.docs.filter(d => d.data().status==='pending').map(d => ({ id:d.id, ...d.data() }));
+    RESIGN_DATA = snap.docs.filter(d => d.data().status==='resigned').map(d => ({ id:d.id, ...d.data() }));
+    const my = snap.docs.find(d => d.id===ME.uid);
+    if(my) ME.rp_score = my.data().rp_score||0;
+    renderMembers(approved); renderApplyList(); renderResignList();
+    updateBadges(window._pendingRp||0, window._pendingTr||0);
+    renderDashboard(approved, window._rpCache||[], window._logCache||[]);
+  }, err => console.warn('[멤버 리스너]', err.code)));
+
+  // 2. 직급
+  _unsubscribers.push(onSnapshot(query(collection(db,'factions',fid,'ranks'), orderBy('order','asc')), (snap) => {
+    RANKS_DATA = snap.docs.map((d,i)=>({ id:d.id, n:i+1, name:d.data().name, cls:d.data().rankClass||'일반직', perms:d.data().perms||[], isFounder:d.data().isFounder||false }));
+    renderRanks();
+  }, err => console.warn('[직급 리스너]', err.code)));
+
+  // 3. 공지
+  _unsubscribers.push(onSnapshot(query(collection(db,'factions',fid,'notices'), orderBy('createdAt','desc'), limit(50)), (snap) => {
+    renderNotices(snap.docs.map(d => ({ id:d.id, ...d.data() })));
+  }, err => console.warn('[공지 리스너]', err.code)));
+
+  // 4. RP 보고서
+  _unsubscribers.push(onSnapshot(query(collection(db,'factions',fid,'reports_rp'), orderBy('createdAt','desc'), limit(100)), (snap) => {
+    const data = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    window._rpCache = data;
+    window._pendingRp = data.filter(r=>r.status==='pending').length;
+    renderRp(data);
+    updateBadges(window._pendingRp, window._pendingTr||0);
+    renderDashboard(window._approvedDocs||[], data, window._logCache||[]);
+  }, err => console.warn('[RP 리스너]', err.code)));
+
+  // 5. 거래 보고서
+  _unsubscribers.push(onSnapshot(query(collection(db,'factions',fid,'reports_trade'), orderBy('createdAt','desc'), limit(100)), (snap) => {
+    const data = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    window._pendingTr = data.filter(r=>r.status==='pending').length;
+    renderTr(data);
+  }, err => console.warn('[거래 리스너]', err.code)));
+
+  // 6. 거래내역
+  _unsubscribers.push(onSnapshot(query(collection(db,'factions',fid,'transactions'), orderBy('createdAt','desc'), limit(50)), (snap) => {
+    renderTx(snap.docs.map(d => ({ id:d.id, ...d.data() })));
+  }, err => console.warn('[거래내역 리스너]', err.code)));
+
+  // 7. 경고
+  _unsubscribers.push(onSnapshot(query(collection(db,'factions',fid,'warnings'), orderBy('createdAt','desc'), limit(50)), (snap) => {
+    renderWarnings(snap.docs.map(d => ({ id:d.id, ...d.data() })));
+  }, err => console.warn('[경고 리스너]', err.code)));
+
+  // 8. 출근부
+  _unsubscribers.push(onSnapshot(collection(db,'factions',fid,'attendance'), (snap) => {
+    const data = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    window._attDataCache = data;
+    const members = (MEMBERS_CACHE&&MEMBERS_CACHE.length) ? MEMBERS_CACHE.map(m=>({userId:m.id,username:m.username})) : [];
+    renderAttendance(members, data);
+  }, err => console.warn('[출근 리스너]', err.code)));
+
+  // 9. 구역
+  _unsubscribers.push(onSnapshot(collection(db,'factions',fid,'zones'), (snap) => {
+    ZONES = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    renderZoneList(); updateRpZoneSelect();
+  }, err => console.warn('[구역 리스너]', err.code)));
+
+  // 10. 물품
+  _unsubscribers.push(onSnapshot(collection(db,'factions',fid,'items'), (snap) => {
+    ITEMS = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    renderItemList(); updateTrItemSelect();
+  }, err => console.warn('[물품 리스너]', err.code)));
+
+  // 11. 활동로그
+  _unsubscribers.push(onSnapshot(query(collection(db,'factions',fid,'activity_logs'), orderBy('createdAt','desc'), limit(30)), (snap) => {
+    window._logCache = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    renderDashboard(window._approvedDocs||[], window._rpCache||[], window._logCache);
+  }, err => console.warn('[로그 리스너]', err.code)));
+}
 
 // ══════════════════════════════════════════
 // 부분 갱신 (전체 재로드 대신 필요한 것만)
 // ══════════════════════════════════════════
-async function reloadMembers() {
-  if(!ME.factionId) return;
-  try {
-    const snap = await getDocs(collection(db,'factions',ME.factionId,'members'));
-    const approved = snap.docs.filter(d => d.data().status==='approved' || d.data().isFounder===true);
-    MEMBERS_CACHE = approved.map(d => ({ id:d.id, ...d.data() }));
-    APPLY_DATA  = snap.docs.filter(d => d.data().status==='pending').map(d => ({ id:d.id, ...d.data() }));
-    RESIGN_DATA = snap.docs.filter(d => d.data().status==='resigned').map(d => ({ id:d.id, ...d.data() }));
-    renderMembers(approved); renderApplyList(); renderResignList();
-    const my = snap.docs.find(d => d.id===ME.uid);
-    if(my) ME.rp_score = my.data().rp_score||0;
-    updateBadges(0,0);
-  } catch(e){ console.warn('[reloadMembers]',e); }
-}
-async function reloadRp() {
-  if(!ME.factionId) return;
-  try {
-    const snap = await getDocs(query(collection(db,'factions',ME.factionId,'reports_rp'), orderBy('createdAt','desc'), limit(100)));
-    const data = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-    renderRp(data);
-  } catch(e){ console.warn('[reloadRp]',e); }
-}
-async function reloadTr() {
-  if(!ME.factionId) return;
-  try {
-    const snap = await getDocs(query(collection(db,'factions',ME.factionId,'reports_trade'), orderBy('createdAt','desc'), limit(100)));
-    const data = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-    renderTr(data);
-  } catch(e){ console.warn('[reloadTr]',e); }
-}
-async function reloadNotices() {
-  if(!ME.factionId) return;
-  try {
-    const snap = await getDocs(query(collection(db,'factions',ME.factionId,'notices'), orderBy('createdAt','desc'), limit(50)));
-    renderNotices(snap.docs.map(d => ({ id:d.id, ...d.data() })));
-  } catch(e){ console.warn('[reloadNotices]',e); }
-}
-async function reloadAttendance() {
-  if(!ME.factionId) return;
-  try {
-    const snap = await getDocs(collection(db,'factions',ME.factionId,'attendance'));
-    const data = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-    window._attDataCache = data;
-    const members = (MEMBERS_CACHE && MEMBERS_CACHE.length)
-      ? MEMBERS_CACHE.map(m=>({userId:m.id,username:m.username}))
-      : (window._lastAttMembers || []);
-    renderAttendance(members, data);
-  } catch(e){ console.warn('[reloadAttendance]',e); }
-}
-async function reloadWarnings() {
-  if(!ME.factionId) return;
-  try {
-    const snap = await getDocs(query(collection(db,'factions',ME.factionId,'warnings'), orderBy('createdAt','desc'), limit(50)));
-    renderWarnings(snap.docs.map(d => ({ id:d.id, ...d.data() })));
-  } catch(e){ console.warn('[reloadWarnings]',e); }
-}
-async function reloadRanks() {
-  if(!ME.factionId) return;
-  try {
-    const snap = await getDocs(query(collection(db,'factions',ME.factionId,'ranks'), orderBy('order','asc')));
-    RANKS_DATA = snap.docs.map((d,i)=>({ id:d.id, n:i+1, name:d.data().name, cls:d.data().rankClass||'일반직', perms:d.data().perms||[], isFounder:d.data().isFounder||false }));
-    renderRanks();
-  } catch(e){ console.warn('[reloadRanks]',e); }
-}
-async function reloadZones() {
-  if(!ME.factionId) return;
-  try {
-    const snap = await getDocs(collection(db,'factions',ME.factionId,'zones'));
-    ZONES = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-    renderZoneList(); updateRpZoneSelect();
-  } catch(e){ console.warn('[reloadZones]',e); }
-}
-async function reloadItems() {
-  if(!ME.factionId) return;
-  try {
-    const snap = await getDocs(collection(db,'factions',ME.factionId,'items'));
-    ITEMS = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-    renderItemList(); updateTrItemSelect();
-  } catch(e){ console.warn('[reloadItems]',e); }
-}
-async function reloadTx() {
-  if(!ME.factionId) return;
-  try {
-    const snap = await getDocs(query(collection(db,'factions',ME.factionId,'transactions'), orderBy('createdAt','desc'), limit(50)));
-    renderTx(snap.docs.map(d => ({ id:d.id, ...d.data() })));
-  } catch(e){ console.warn('[reloadTx]',e); }
-}
 
 let _lastLoadTime = 0;
 let _loadPending = false;
@@ -1979,7 +1984,6 @@ async function submitRp() {
     toast(`RP 보고서 제출! (${rpResult==='win'?'승리':'패배'} +${score}점)`,'success');
     document.getElementById('rpZone').value=''; document.getElementById('rpOpponent').value=''; document.getElementById('rpCont').value='';
     currentZone=null; document.getElementById('rpScorePreview').style.display='none'; selectRpResult('win');
-    await reloadRp(); await reloadMembers();
   } catch(err){ toast('제출 실패: '+err.message,'error'); }
   finally { rpProcessing = false; }
 }
@@ -1990,7 +1994,7 @@ async function approveRp(btn, id, authorId, score) {
   try {
     const rpRef = doc(db,'factions',ME.factionId,'reports_rp',id);
     const rpChk = await getDoc(rpRef);
-    if(!rpChk.exists() || rpChk.data().status !== 'pending') { toast('이미 처리된 보고서입니다.','error'); await reloadRp(); await reloadMembers(); return; }
+    if(!rpChk.exists() || rpChk.data().status !== 'pending') { toast('이미 처리된 보고서입니다.','error'); return; }
     const rpData = rpChk.data();
     // 점수 위조 방지: DB 보고서의 zone을 기준으로 점수 재계산
     const zone = ZONES.find(z => z.id === rpData.zoneId);
@@ -2002,7 +2006,6 @@ async function approveRp(btn, id, authorId, score) {
       await updateDoc(doc(db,'factions',ME.factionId,'members',rpData.authorId),{rp_score:fsIncrement(realScore)});
     }
     toast(`RP 보고서 승인! (+${realScore}점 반영)`,'success');
-    await reloadRp(); await reloadMembers();
   } catch(err){ toast('승인 실패: '+err.message,'error'); }
 }
 
@@ -2113,7 +2116,7 @@ async function submitTr() {
     document.getElementById('trTotalPreview').style.display='none';
     document.getElementById('trLimitStatus').innerHTML='';
     currentItem=null; trLimitOk=true;
-    await reloadTr();
+   
   } catch(err){
     console.error('[거래 제출 오류]', err.code, err.message);
     toast('제출 실패: '+err.message,'error');
@@ -2147,7 +2150,6 @@ async function submitNt() {
     });
     cm('moNt'); toast('공지가 등록되었습니다!','success');
     document.getElementById('ntTitle').value=''; document.getElementById('ntCont').value='';
-    await reloadNotices();
   } catch(err){ toast('오류: '+err.message,'error'); }
   finally { ntProcessing = false; }
 }
@@ -2173,7 +2175,7 @@ async function approveApply(id, name) {
     await updateDoc(doc(db,'factions',ME.factionId),{ memberCount: fsIncrement(1) });
     try { await updateDoc(doc(db,'users',id),{ factionStatus:'approved' }); } catch(e){}
     await addDoc(collection(db,'factions',ME.factionId,'activity_logs'),{ type:'member_approved', message:`${name}님이 팩션에 가입했습니다.`, userId:id, createdAt:serverTimestamp() });
-    toast(`${name}님 가입 승인 완료!`,'success'); await reloadMembers();
+    toast(`${name}님 가입 승인 완료!`,'success');
   } catch(err){ toast('오류: '+err.message,'error'); }
 }
 
@@ -2184,7 +2186,7 @@ async function rejectApply(id, name) {
     // 거절 시 members에서 삭제 + users factionId 해제 (재가입 가능)
     await deleteDoc(doc(db,'factions',ME.factionId,'members',id));
     try { await updateDoc(doc(db,'users',id),{ factionId:null, factionStatus:null }); } catch(e){}
-    toast(`${name}님 가입 거절 처리.`,'info'); await reloadMembers();
+    toast(`${name}님 가입 거절 처리.`,'info');
   } catch(err){ toast('오류: '+err.message,'error'); }
 }
 
@@ -2194,7 +2196,7 @@ async function acceptResign(id, name) {
     await deleteDoc(doc(db,'factions',ME.factionId,'members',id));
     try { await updateDoc(doc(db,'users',id),{factionId:null, factionStatus:null}); } catch(e){}
     await updateDoc(doc(db,'factions',ME.factionId),{ memberCount: fsIncrement(-1) });
-    toast(`${name}님 퇴단 처리 완료.`,'success'); await reloadMembers();
+    toast(`${name}님 퇴단 처리 완료.`,'success');
   } catch(err){ toast('오류: '+err.message,'error'); }
 }
 
@@ -2202,7 +2204,7 @@ async function rejectResign(id, name) {
   if(!ME.factionId) return;
   try {
     await updateDoc(doc(db,'factions',ME.factionId,'members',id),{status:'approved'});
-    toast(`${name}님 사직서 반려.`,'info'); await reloadMembers();
+    toast(`${name}님 사직서 반려.`,'info');
   } catch(err){ toast('오류: '+err.message,'error'); }
 }
 
@@ -2237,7 +2239,7 @@ async function createRank() {
     await addDoc(collection(db,'factions',ME.factionId,'ranks'),{
       name,rankClass:selectedClass,perms:[...selectedPerms],isFounder:false,order:RANKS_DATA.length+1,createdAt:serverTimestamp(),
     });
-    cm('moRankCreate'); toast(`${name} 직급 생성 완료!`,'success'); await reloadRanks();
+    cm('moRankCreate'); toast(`${name} 직급 생성 완료!`,'success');
   } catch(err){ toast('오류: '+err.message,'error'); }
 }
 
@@ -2296,7 +2298,7 @@ async function confirmPromote() {
     await addDoc(collection(db,'factions',ME.factionId,'activity_logs'),{
       type:'rank_changed', message:`${promoteSelMember.name}님이 ${promoteSelMember.rank} → ${promoteSelRank.name}으로 변경되었습니다.`, userId:ME.uid, createdAt:serverTimestamp(),
     });
-    cm('moPromote'); toast(`${promoteSelMember.name}님 직급 변경 완료!`,'success'); await reloadMembers();
+    cm('moPromote'); toast(`${promoteSelMember.name}님 직급 변경 완료!`,'success');
   } catch(err){ toast('오류: '+err.message,'error'); }
 }
 
@@ -2311,13 +2313,13 @@ async function addZone() {
   if(!name){toast('구역명을 입력해주세요.','error');return;}
   try {
     await addDoc(collection(db,'factions',ME.factionId,'zones'),{name,winScore,loseScore,desc,createdAt:serverTimestamp()});
-    await reloadZones(); cm('moZoneAdd'); toast(`${name} 구역 추가!`,'success');
+    cm('moZoneAdd'); toast(`${name} 구역 추가!`,'success');
     document.getElementById('zoneName').value='';
   } catch(err){ toast('오류: '+err.message,'error'); }
 }
 async function deleteZone(id, name) {
   if(!confirm(`'${name}' 구역을 삭제하시겠습니까?`)) return;
-  try { await deleteDoc(doc(db,'factions',ME.factionId,'zones',id)); await reloadZones(); toast('구역 삭제 완료','info'); } catch(err){ toast('오류: '+err.message,'error'); }
+  try { await deleteDoc(doc(db,'factions',ME.factionId,'zones',id)); toast('구역 삭제 완료','info'); } catch(err){ toast('오류: '+err.message,'error'); }
 }
 async function addItem() {
   const name=document.getElementById('itemName')?.value.trim();
@@ -2327,13 +2329,13 @@ async function addItem() {
   if(!name){toast('물품명을 입력해주세요.','error');return;}
   try {
     await addDoc(collection(db,'factions',ME.factionId,'items'),{name,price,dailyLimit,category,createdAt:serverTimestamp()});
-    await reloadItems(); cm('moItemAdd'); toast(`${name} 물품 추가!`,'success');
+    cm('moItemAdd'); toast(`${name} 물품 추가!`,'success');
     document.getElementById('itemName').value='';
   } catch(err){ toast('오류: '+err.message,'error'); }
 }
 async function deleteItem(id, name) {
   if(!confirm(`'${name}' 물품을 삭제하시겠습니까?`)) return;
-  try { await deleteDoc(doc(db,'factions',ME.factionId,'items',id)); await reloadItems(); toast('물품 삭제 완료','info'); } catch(err){ toast('오류: '+err.message,'error'); }
+  try { await deleteDoc(doc(db,'factions',ME.factionId,'items',id)); toast('물품 삭제 완료','info'); } catch(err){ toast('오류: '+err.message,'error'); }
 }
 
 // ══════════════════════════════════════════
@@ -2544,7 +2546,6 @@ async function toggleCI() {
       updateCIUI(false, total, null, sessionMin);
       toast(`퇴근 완료! 이번 근무 ${fmtMin(sessionMin)}, 오늘 누적 ${fmtMin(total)} 🎉`,'success');
     }
-    await reloadAttendance();
   } catch(e) {
     console.error('[출퇴근 오류]', e.code, e.message);
     toast('저장 실패: '+e.message,'error');
@@ -2856,7 +2857,7 @@ async function saveProfile() {
     renderUserInfo();
     cm('moEditProfile');
     toast('프로필 저장 완료!','success');
-    await reloadMembers();
+   
   } catch(err){ toast('저장 실패: '+err.message,'error'); }
 }
 
@@ -2952,7 +2953,7 @@ async function mmChangeRank() {
     });
     cm('moMemberManage');
     toast('직급 변경 완료!','success');
-    await reloadMembers();
+   
   } catch(err){ toast('변경 실패: '+err.message,'error'); }
 }
 
@@ -2965,7 +2966,7 @@ async function mmKick() {
     await updateDoc(doc(db,'factions',ME.factionId),{ memberCount: fsIncrement(-1) });
     cm('moMemberManage');
     toast('추방 처리 완료.','info');
-    await reloadMembers();
+   
   } catch(err){ toast('추방 실패: '+err.message,'error'); }
 }
 
@@ -3046,7 +3047,6 @@ async function submitWarn() {
     cm('moWarn');
     toast('경고 부여 완료.','info');
     document.getElementById('warnReason').value='';
-    await reloadWarnings(); await reloadMembers();
   } catch(err){ toast('부여 실패: '+err.message,'error'); }
 }
 
@@ -3059,7 +3059,7 @@ async function approveTr(id) {
     const trDoc = await getDoc(trRef);
     if(!trDoc.exists()) { toast('보고서를 찾을 수 없습니다.','error'); return; }
     // 멱등성: 이미 처리된 보고서는 재처리 차단
-    if(trDoc.data().status !== 'pending') { toast('이미 처리된 보고서입니다.','error'); await reloadTr(); await reloadMembers(); await reloadTx(); return; }
+    if(trDoc.data().status !== 'pending') { toast('이미 처리된 보고서입니다.','error'); return; }
     if(trDoc.data()?.authorId === ME.uid) { toast('본인이 작성한 보고서는 승인할 수 없습니다.','error'); return; }
     await updateDoc(trRef,{ status:'approved' });
     // 승인 시 작성자 실적(trade_count) 반영
@@ -3076,7 +3076,7 @@ async function approveTr(id) {
       });
     }
     toast('거래 승인 완료! 금고에 반영됨.','success');
-    await reloadTr(); await reloadMembers(); await reloadTx();
+   
   } catch(err){ toast('승인 실패: '+err.message,'error'); }
 }
 
@@ -3086,10 +3086,10 @@ async function rejectTr(id) {
   try {
     const trRef0 = doc(db,'factions',ME.factionId,'reports_trade',id);
     const trDoc0 = await getDoc(trRef0);
-    if(!trDoc0.exists() || trDoc0.data().status !== 'pending') { toast('이미 처리된 보고서입니다.','error'); await reloadTr(); return; }
+    if(!trDoc0.exists() || trDoc0.data().status !== 'pending') { toast('이미 처리된 보고서입니다.','error'); return; }
     await updateDoc(trRef0,{ status:'rejected' });
     toast('거래 거절 처리.','info');
-    await reloadTr();
+   
   } catch(err){ toast('거절 실패: '+err.message,'error'); }
 }
 
@@ -3100,7 +3100,6 @@ async function deleteNotice(id) {
   try {
     await deleteDoc(doc(db,'factions',ME.factionId,'notices',id));
     toast('공지 삭제 완료.','info');
-    await reloadNotices();
   } catch(err){ toast('삭제 실패: '+err.message,'error'); }
 }
 
@@ -3150,7 +3149,7 @@ async function saveRankEdit() {
     });
     cm('moRankEdit');
     toast('직급 수정 완료!','success');
-    await reloadRanks(); await reloadMembers();
+   
   } catch(err){ toast('수정 실패: '+err.message,'error'); }
 }
 
@@ -3171,7 +3170,7 @@ async function deleteRank(rankId, name) {
     }
     await deleteDoc(doc(db,'factions',ME.factionId,'ranks',rankId));
     toast('직급 삭제 완료.','info');
-    await reloadRanks(); await reloadMembers();
+   
   } catch(err){ toast('삭제 실패: '+err.message,'error'); }
 }
 
