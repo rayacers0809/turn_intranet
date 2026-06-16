@@ -505,7 +505,7 @@ input,textarea,select{font-family:var(--font);}
   <div class="mh"><h2>✏️ 프로필 편집</h2><p>인트라넷에서 표시될 정보를 수정하세요.</p></div>
   <div style="display:flex;flex-direction:column;gap:13px;">
     <div class="fi"><label>게임 내 닉네임</label><input class="inp" id="editNick" maxlength="20" placeholder="Turn City 게임 내 닉네임"><div style="font-size:11px;color:var(--tx3);margin-top:3px;">사이드바와 보고서에 표시됩니다.</div></div>
-    <div class="fi"><label>고유번호 (ID)</label><input class="inp" id="editGameId" maxlength="10" placeholder="인게임 고유번호" type="number"></div>
+    <div class="fi"><label>고유번호 (ID)</label><input class="inp" id="editGameId" maxlength="10" placeholder="인게임 고유번호" type="number" min="0"></div>
     <div class="fi"><label>자기소개</label><textarea class="inp" id="editBio" maxlength="200" rows="3" placeholder="자기소개..."></textarea></div>
   </div>
   <div class="mf" style="justify-content:space-between;">
@@ -535,7 +535,7 @@ input,textarea,select{font-family:var(--font);}
         </div>
       </div>
     </div>
-    <div class="fi"><label>참여 인원</label><input class="inp" id="rpMembers" type="number" value="1" min="1"></div>
+    <div class="fi"><label>참여 인원</label><input class="inp" id="rpMembers" type="number" min="0" value="1" min="1"></div>
     <div class="fi"><label>특이사항 (선택)</label><textarea class="inp" id="rpCont" maxlength="300" rows="3" placeholder="특이사항..."></textarea></div>
     <div id="rpScorePreview" style="display:none;background:var(--pbg);border:1px solid var(--pbd);border-radius:var(--r);padding:12px;font-size:13px;">
       제출 시 <b id="rpScoreAmt">0점</b> 획득
@@ -556,10 +556,10 @@ input,textarea,select{font-family:var(--font);}
     </div>
     <div class="fi">
       <label>구매자 고유번호</label>
-      <input class="inp" id="trBuyerId" placeholder="인게임 고유번호" type="number" oninput="checkDailyLimit(this.value)">
+      <input class="inp" id="trBuyerId" placeholder="인게임 고유번호" type="number" min="0" oninput="checkDailyLimit(this.value)">
       <div id="trLimitStatus" style="font-size:12px;margin-top:4px;"></div>
     </div>
-    <div class="fi"><label>수량</label><input class="inp" id="trQty" type="number" value="1" min="1" oninput="calcTrTotal()"></div>
+    <div class="fi"><label>수량</label><input class="inp" id="trQty" type="number" min="0" value="1" min="1" oninput="calcTrTotal()"></div>
     <div id="trTotalPreview" style="display:none;background:var(--pbg);border:1px solid var(--pbd);border-radius:var(--r);padding:12px;">
       <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;"><span>총 금액</span><span style="font-family:var(--mono);color:var(--p);" id="trTotalAmt">₩0</span></div>
     </div>
@@ -633,8 +633,8 @@ input,textarea,select{font-family:var(--font);}
   <div style="display:flex;flex-direction:column;gap:12px;">
     <div class="fi"><label>구역명</label><input class="inp" id="zoneName" maxlength="20" placeholder="예: 강남구, 항구..."></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div class="fi"><label>승리 점수</label><input class="inp" id="zoneWinScore" type="number" value="10"></div>
-      <div class="fi"><label>패배 점수</label><input class="inp" id="zoneLoseScore" type="number" value="3"></div>
+      <div class="fi"><label>승리 점수</label><input class="inp" id="zoneWinScore" type="number" min="0" value="10"></div>
+      <div class="fi"><label>패배 점수</label><input class="inp" id="zoneLoseScore" type="number" min="0" value="3"></div>
     </div>
     <div class="fi"><label>설명 (선택)</label><input class="inp" id="zoneDesc" placeholder="구역 설명..."></div>
   </div>
@@ -648,8 +648,8 @@ input,textarea,select{font-family:var(--font);}
   <div style="display:flex;flex-direction:column;gap:12px;">
     <div class="fi"><label>물품명</label><input class="inp" id="itemName" maxlength="20" placeholder="예: 마약, 무기..."></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <div class="fi"><label>단가 (₩)</label><input class="inp" id="itemPrice" type="number" value="50000"></div>
-      <div class="fi"><label>일일 한도 (개)</label><input class="inp" id="itemLimit" type="number" value="3"></div>
+      <div class="fi"><label>단가 (₩)</label><input class="inp" id="itemPrice" type="number" min="0" value="50000"></div>
+      <div class="fi"><label>일일 한도 (개)</label><input class="inp" id="itemLimit" type="number" min="0" value="3"></div>
     </div>
     <div class="fi"><label>카테고리</label>
       <select class="inp" id="itemCategory"><option>밀수품</option><option>무기류</option><option>의약품</option><option>식품</option><option>기타</option></select>
@@ -1319,7 +1319,7 @@ function renderJoin() {
     body.innerHTML = `${preview}${loginBtn}<div class="fi" style="margin-top:12px;"><label>가입코드</label><input class="code-inp" id="joinCodeInp" maxlength="10" placeholder="가입코드 입력" oninput="this.value=this.value.toUpperCase().replace(/[^0-9A-Z]/g,'');checkJoinCode(this.value)" ${!user?'disabled':''}><div id="factionFound" class="faction-found"></div><div style="font-size:11px;color:var(--tx3);margin-top:6px;">💡 가입코드는 팩션장 또는 관리자에게 문의하세요.</div></div>`;
     footer.innerHTML = `<div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px;"><button class="btn g sm" onclick="showScreen('screen-landing')">← 돌아가기</button><button class="btn p sm" id="joinNextBtn" onclick="joinNext()" disabled style="opacity:.4;cursor:not-allowed;">다음 →</button></div>`;
   } else if (joinStep === 2) {
-    body.innerHTML = `<div style="background:var(--pbg);border:1px solid var(--pbd);border-radius:var(--r);padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;"><div style="width:10px;height:10px;border-radius:50%;background:${joinFactionData?.theme?.primaryColor||'var(--p)'};flex-shrink:0;"></div><div><div style="font-size:13px;font-weight:700;color:var(--p);">${joinFactionData?.factionName||'팩션'}</div><div style="font-size:11px;color:var(--tx2);">${joinFactionData?.factionType||''}</div></div></div><div style="display:flex;flex-direction:column;gap:12px;"><div class="fi"><label>게임 내 닉네임 *</label><input class="inp" id="joinNick" maxlength="20" placeholder="Turn City 게임 내 닉네임"></div><div class="fi"><label>고유번호 *</label><input class="inp" id="joinUID" maxlength="10" placeholder="인게임 고유번호 (예: 12345)" type="number"><div style="font-size:11px;color:var(--tx3);margin-top:3px;">F8 콘솔 또는 /id 명령어로 확인</div></div><div class="fi"><label>자기소개 *</label><textarea class="inp" id="joinBio" maxlength="300" rows="4" placeholder="간단한 자기소개를 작성해주세요. (최소 20자)"></textarea></div></div>`;
+    body.innerHTML = `<div style="background:var(--pbg);border:1px solid var(--pbd);border-radius:var(--r);padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;"><div style="width:10px;height:10px;border-radius:50%;background:${joinFactionData?.theme?.primaryColor||'var(--p)'};flex-shrink:0;"></div><div><div style="font-size:13px;font-weight:700;color:var(--p);">${joinFactionData?.factionName||'팩션'}</div><div style="font-size:11px;color:var(--tx2);">${joinFactionData?.factionType||''}</div></div></div><div style="display:flex;flex-direction:column;gap:12px;"><div class="fi"><label>게임 내 닉네임 *</label><input class="inp" id="joinNick" maxlength="20" placeholder="Turn City 게임 내 닉네임"></div><div class="fi"><label>고유번호 *</label><input class="inp" id="joinUID" maxlength="10" placeholder="인게임 고유번호 (예: 12345)" type="number" min="0"><div style="font-size:11px;color:var(--tx3);margin-top:3px;">F8 콘솔 또는 /id 명령어로 확인</div></div><div class="fi"><label>자기소개 *</label><textarea class="inp" id="joinBio" maxlength="300" rows="4" placeholder="간단한 자기소개를 작성해주세요. (최소 20자)"></textarea></div></div>`;
     footer.innerHTML = `<div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px;"><button class="btn g sm" onclick="joinStep=1;renderJoin()">← 이전</button><button class="btn p sm" onclick="submitJoinApply()">가입 신청하기 →</button></div>`;
   } else {
     body.innerHTML = `<div class="join-pending"><div class="jp-icon">🎉</div><h3>가입 신청 완료!</h3><p><b>${joinFactionData?.factionName}</b>에 가입 신청이 접수되었습니다.<br><br>팩션 관리자 승인 후 인트라넷에 접속 가능합니다.</p></div>`;
@@ -1409,6 +1409,7 @@ async function submitJoinApply() {
 // 인트라넷 로드
 // ══════════════════════════════════════════
 async function loadIntranet(factionData, memberData, userData) {
+  showLoading('인트라넷 불러오는 중...');
   ME = {
     uid:         auth.currentUser?.uid || '',
     name:        memberData.gameNick || memberData.username || userData.username || '알 수 없음',
@@ -1446,6 +1447,7 @@ async function loadIntranet(factionData, memberData, userData) {
   const jc = document.getElementById('joinCode'); if(jc) jc.textContent = factionData.joinCode || '-';
   renderUserInfo(); renderNav(); applyPermUI(); startClock();
   showScreen('screen-app');
+  hideLoading();
   toast(`환영합니다, ${ME.name}님! 👋`, 'success');
 
   // 출근 상태 복원 (오늘 미퇴근 세션 있으면 출근 중)
@@ -1542,7 +1544,7 @@ async function loadAllData(force = false) {
     MEMBERS_CACHE = approvedMembers.map(d => ({ id:d.id, ...d.data() }));
     APPLY_DATA  = membersSnap.docs.filter(d => d.data().status === 'pending').map(d => ({ id:d.id, ...d.data() }));
     RESIGN_DATA = membersSnap.docs.filter(d => d.data().status === 'resigned').map(d => ({ id:d.id, ...d.data() }));
-    RANKS_DATA  = ranksSnap.docs.map((d,i) => ({ id:d.id, n:i+1, name:d.data().name, cls:d.data().rankClass||'일반직', perms:d.data().perms||[] }));
+    RANKS_DATA  = ranksSnap.docs.map((d,i) => ({ id:d.id, n:i+1, name:d.data().name, cls:d.data().rankClass||'일반직', perms:d.data().perms||[], isFounder:d.data().isFounder||false }));
     ZONES = zoneSnap.docs.map(d => ({ id:d.id, ...d.data() }));
     ITEMS = itemSnap.docs.map(d => ({ id:d.id, ...d.data() }));
     const notices = ntSnap.docs.map(d => ({ id:d.id, ...d.data() }));
@@ -1894,10 +1896,21 @@ async function approveRp(btn, id, authorId, score) {
   if(!ME.factionId) return;
   if(authorId === ME.uid) { toast('본인이 작성한 보고서는 승인할 수 없습니다.','error'); return; }
   try {
-    await updateDoc(doc(db,'factions',ME.factionId,'reports_rp',id),{status:'approved'});
-    if(authorId&&score){ await updateDoc(doc(db,'factions',ME.factionId,'members',authorId),{rp_score:fsIncrement(score)}); }
-    btn.closest('tr').querySelector('.bbw').outerHTML='<span class="badge bbs">승인</span>'; btn.remove();
-    toast(`RP 보고서 승인! (+${score}점 반영)`,'success');
+    const rpRef = doc(db,'factions',ME.factionId,'reports_rp',id);
+    const rpChk = await getDoc(rpRef);
+    if(!rpChk.exists() || rpChk.data().status !== 'pending') { toast('이미 처리된 보고서입니다.','error'); await loadAllData(); return; }
+    const rpData = rpChk.data();
+    // 점수 위조 방지: DB 보고서의 zone을 기준으로 점수 재계산
+    const zone = ZONES.find(z => z.id === rpData.zoneId);
+    const realScore = zone
+      ? (rpData.result === 'win' ? (zone.winScore||0) : (zone.loseScore||0))
+      : (rpData.score || 0);
+    await updateDoc(rpRef,{status:'approved'});
+    if(rpData.authorId && realScore){
+      await updateDoc(doc(db,'factions',ME.factionId,'members',rpData.authorId),{rp_score:fsIncrement(realScore)});
+    }
+    toast(`RP 보고서 승인! (+${realScore}점 반영)`,'success');
+    await loadAllData();
   } catch(err){ toast('승인 실패: '+err.message,'error'); }
 }
 
@@ -2529,6 +2542,7 @@ function resetCz(){applyColor('#4F8EF7',document.querySelector('.cpx'));setMode(
 // 네비게이션
 // ══════════════════════════════════════════
 function navTo(p, el) {
+  closeMobDrawer();
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
   document.getElementById(`page-${p}`)?.classList.add('active');
   document.querySelectorAll('.ni[data-p]').forEach(x=>x.classList.remove('on'));
@@ -2737,13 +2751,20 @@ async function saveProfile() {
   if(!nick) { toast('닉네임을 입력해주세요.','error'); return; }
   if(!ME.factionId || !ME.uid) return;
   try {
+    // gameId 변경 시 중복 체크 (본인 제외)
+    if(gameId && gameId !== ME.gameId) {
+      const dup = await getDocs(query(collection(db,'factions',ME.factionId,'members'), where('gameId','==',gameId)));
+      const conflict = dup.docs.find(d => d.id !== ME.uid);
+      if(conflict) { toast('이미 사용 중인 고유번호입니다.','error'); return; }
+    }
     await updateDoc(doc(db,'factions',ME.factionId,'members',ME.uid),{
       username: nick, gameNick: nick, gameId: gameId||'', bio: bio||'',
     });
-    ME.name = nick;
+    ME.name = nick; ME.gameNick = nick; ME.gameId = gameId||'';
     renderUserInfo();
     cm('moEditProfile');
     toast('프로필 저장 완료!','success');
+    await loadAllData();
   } catch(err){ toast('저장 실패: '+err.message,'error'); }
 }
 
@@ -2825,6 +2846,14 @@ async function mmChangeRank() {
   if(!rankId) { toast('직급을 선택해주세요.','error'); return; }
   if(!mmTargetId || !ME.factionId) return;
   const rank = RANKS_DATA.find(r => r.id === rankId);
+  // 계급 역전 방지: 팩션장이 아니면 고위직 직급 부여 불가
+  if(!ME.isFounder && rank?.cls === '고위직') {
+    toast('고위직 직급은 팩션장만 부여할 수 있습니다.','error'); return;
+  }
+  // isFounder 플래그가 붙은 직급은 위임으로만 가능
+  if(rank?.isFounder) {
+    toast('팩션장 직급은 위임 기능으로만 부여할 수 있습니다.','error'); return;
+  }
   try {
     await updateDoc(doc(db,'factions',ME.factionId,'members',mmTargetId),{
       rankId, rankName: rank?.name||'', rankClass: rank?.cls||'일반직', perms: rank?.perms||[],
@@ -2936,6 +2965,9 @@ async function approveTr(id) {
   try {
     const trRef = doc(db,'factions',ME.factionId,'reports_trade',id);
     const trDoc = await getDoc(trRef);
+    if(!trDoc.exists()) { toast('보고서를 찾을 수 없습니다.','error'); return; }
+    // 멱등성: 이미 처리된 보고서는 재처리 차단
+    if(trDoc.data().status !== 'pending') { toast('이미 처리된 보고서입니다.','error'); await loadAllData(); return; }
     if(trDoc.data()?.authorId === ME.uid) { toast('본인이 작성한 보고서는 승인할 수 없습니다.','error'); return; }
     await updateDoc(trRef,{ status:'approved' });
     // 승인 시 작성자 실적(trade_count) 반영
@@ -2960,7 +2992,10 @@ async function rejectTr(id) {
   if(!ME.factionId) return;
   if(!confirm('이 거래 보고서를 거절하시겠습니까?')) return;
   try {
-    await updateDoc(doc(db,'factions',ME.factionId,'reports_trade',id),{ status:'rejected' });
+    const trRef0 = doc(db,'factions',ME.factionId,'reports_trade',id);
+    const trDoc0 = await getDoc(trRef0);
+    if(!trDoc0.exists() || trDoc0.data().status !== 'pending') { toast('이미 처리된 보고서입니다.','error'); await loadAllData(); return; }
+    await updateDoc(trRef0,{ status:'rejected' });
     toast('거래 거절 처리.','info');
     await loadAllData();
   } catch(err){ toast('거절 실패: '+err.message,'error'); }
@@ -3126,6 +3161,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // 초기 렌더
   setTimeout(renderLanding, 100);
   loadLandingStats();
+
+  // 모달 ESC / 바깥 클릭 닫기
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape') {
+      document.querySelectorAll('.mo.open').forEach(mo => mo.classList.remove('open'));
+    }
+  });
+  document.addEventListener('click', (e) => {
+    if(e.target.classList && e.target.classList.contains('mo') && e.target.classList.contains('open')) {
+      e.target.classList.remove('open');
+    }
+  });
+
 });
 
 </script>
