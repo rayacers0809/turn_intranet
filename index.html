@@ -403,6 +403,15 @@ input,textarea,select{font-family:var(--font);}
 </head>
 <body>
 <div class="tw" id="tw"></div>
+<!-- 로딩 오버레이 -->
+<div id="loadingOverlay" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.3);backdrop-filter:blur(2px);align-items:center;justify-content:center;">
+  <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rl);padding:24px 32px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:var(--shm);">
+    <div style="width:36px;height:36px;border:3px solid var(--bg5);border-top-color:var(--p);border-radius:50%;animation:spin .8s linear infinite;"></div>
+    <div style="font-size:13px;font-weight:600;color:var(--tx2);" id="loadingText">불러오는 중...</div>
+  </div>
+</div>
+
+
 
 <!-- OAUTH -->
 <div id="screen-oauth" class="screen">
@@ -434,7 +443,7 @@ input,textarea,select{font-family:var(--font);}
 <div class="md wide">
   <div class="mh"><h2>🏅 직급 수정</h2><p>직급 정보와 권한을 수정하세요.</p></div>
   <div style="display:flex;flex-direction:column;gap:14px;">
-    <div class="fi"><label>직급명</label><input class="inp" id="editRankName" placeholder="직급명"></div>
+    <div class="fi"><label>직급명</label><input class="inp" id="editRankName" maxlength="15" placeholder="직급명"></div>
     <div class="fi"><label>직급 클래스</label>
       <div class="class-tabs" id="editClassTabs">
         <div class="ctab" data-cls="고위직" onclick="selectEditClass(this)">👑 고위직</div>
@@ -456,6 +465,10 @@ input,textarea,select{font-family:var(--font);}
   <div style="display:flex;flex-direction:column;gap:13px;">
     <div class="fi"><label>직급 변경</label><select class="inp" id="mmRank"><option value="">직급 선택...</option></select></div>
     <button class="btn p" onclick="mmChangeRank()">직급 변경 적용</button>
+    <div id="mmTransferWrap" style="border-top:1px solid var(--bd);padding-top:13px;display:none;">
+      <button class="btn" style="width:100%;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);color:#A855F7;margin-bottom:8px;" onclick="mmTransfer()">👑 팩션장 위임</button>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">위임 시 본인은 일반 직급으로 강등됩니다.</div>
+    </div>
     <div style="border-top:1px solid var(--bd);padding-top:13px;">
       <button class="btn d" style="width:100%;" onclick="mmKick()">🚪 팩션에서 추방</button>
     </div>
@@ -468,7 +481,7 @@ input,textarea,select{font-family:var(--font);}
 <div class="mo" id="moResign">
 <div class="md">
   <div class="mh"><h2>📝 사직서 제출</h2><p>사직 사유를 작성해주세요. 관리자 수리 후 퇴단 처리됩니다.</p></div>
-  <div class="fi"><label>사직 사유</label><textarea class="inp" id="resignReason" rows="4" placeholder="사직 사유를 작성해주세요..."></textarea></div>
+  <div class="fi"><label>사직 사유</label><textarea class="inp" id="resignReason" maxlength="300" rows="4" placeholder="사직 사유를 작성해주세요..."></textarea></div>
   <div class="mf"><button class="btn g sm" onclick="cm('moResign')">취소</button><button class="btn d sm" onclick="submitResign()">제출 →</button></div>
 </div>
 </div>
@@ -480,7 +493,7 @@ input,textarea,select{font-family:var(--font);}
   <div style="display:flex;flex-direction:column;gap:13px;">
     <div class="fi"><label>대상 팩션원</label><select class="inp" id="warnTarget"><option value="">선택...</option></select></div>
     <div class="fi"><label>경고 수위</label><select class="inp" id="warnLevel"><option>구두경고</option><option>경고 1회</option><option>경고 2회</option><option>최종경고</option></select></div>
-    <div class="fi"><label>사유</label><textarea class="inp" id="warnReason" rows="3" placeholder="경고 사유..."></textarea></div>
+    <div class="fi"><label>사유</label><textarea class="inp" id="warnReason" maxlength="300" rows="3" placeholder="경고 사유..."></textarea></div>
   </div>
   <div class="mf"><button class="btn g sm" onclick="cm('moWarn')">취소</button><button class="btn d sm" onclick="submitWarn()">경고 부여 →</button></div>
 </div>
@@ -491,9 +504,9 @@ input,textarea,select{font-family:var(--font);}
 <div class="md">
   <div class="mh"><h2>✏️ 프로필 편집</h2><p>인트라넷에서 표시될 정보를 수정하세요.</p></div>
   <div style="display:flex;flex-direction:column;gap:13px;">
-    <div class="fi"><label>게임 내 닉네임</label><input class="inp" id="editNick" placeholder="Turn City 게임 내 닉네임"><div style="font-size:11px;color:var(--tx3);margin-top:3px;">사이드바와 보고서에 표시됩니다.</div></div>
-    <div class="fi"><label>고유번호 (ID)</label><input class="inp" id="editGameId" placeholder="인게임 고유번호" type="number"></div>
-    <div class="fi"><label>자기소개</label><textarea class="inp" id="editBio" rows="3" placeholder="자기소개..."></textarea></div>
+    <div class="fi"><label>게임 내 닉네임</label><input class="inp" id="editNick" maxlength="20" placeholder="Turn City 게임 내 닉네임"><div style="font-size:11px;color:var(--tx3);margin-top:3px;">사이드바와 보고서에 표시됩니다.</div></div>
+    <div class="fi"><label>고유번호 (ID)</label><input class="inp" id="editGameId" maxlength="10" placeholder="인게임 고유번호" type="number"></div>
+    <div class="fi"><label>자기소개</label><textarea class="inp" id="editBio" maxlength="200" rows="3" placeholder="자기소개..."></textarea></div>
   </div>
   <div class="mf" style="justify-content:space-between;">
     <button class="btn d sm" onclick="cm('moEditProfile');om('moResign')">📝 사직서</button>
@@ -508,7 +521,7 @@ input,textarea,select{font-family:var(--font);}
   <div class="mh"><h2>📋 RP 보고서 작성</h2><p>RP 결과를 기록하세요. 승패에 따라 점수가 부여됩니다.</p></div>
   <div style="display:flex;flex-direction:column;gap:13px;">
     <div class="fi"><label>RP 구역</label><select class="inp" id="rpZone"><option value="">구역 선택...</option></select></div>
-    <div class="fi"><label>상대 팩션/상대방</label><input class="inp" id="rpOpponent" placeholder="예: 흑야 패밀리, 시민 A"></div>
+    <div class="fi"><label>상대 팩션/상대방</label><input class="inp" id="rpOpponent" maxlength="30" placeholder="예: 흑야 패밀리, 시민 A"></div>
     <div class="fi">
       <label>결과</label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -523,7 +536,7 @@ input,textarea,select{font-family:var(--font);}
       </div>
     </div>
     <div class="fi"><label>참여 인원</label><input class="inp" id="rpMembers" type="number" value="1" min="1"></div>
-    <div class="fi"><label>특이사항 (선택)</label><textarea class="inp" id="rpCont" rows="3" placeholder="특이사항..."></textarea></div>
+    <div class="fi"><label>특이사항 (선택)</label><textarea class="inp" id="rpCont" maxlength="300" rows="3" placeholder="특이사항..."></textarea></div>
     <div id="rpScorePreview" style="display:none;background:var(--pbg);border:1px solid var(--pbd);border-radius:var(--r);padding:12px;font-size:13px;">
       제출 시 <b id="rpScoreAmt">0점</b> 획득
     </div>
@@ -550,8 +563,8 @@ input,textarea,select{font-family:var(--font);}
     <div id="trTotalPreview" style="display:none;background:var(--pbg);border:1px solid var(--pbd);border-radius:var(--r);padding:12px;">
       <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;"><span>총 금액</span><span style="font-family:var(--mono);color:var(--p);" id="trTotalAmt">₩0</span></div>
     </div>
-    <div class="fi"><label>구매자 닉네임</label><input class="inp" id="trPeer" placeholder="구매자 닉네임"></div>
-    <div class="fi"><label>비고</label><textarea class="inp" id="trNote" rows="2" placeholder="메모..."></textarea></div>
+    <div class="fi"><label>구매자 닉네임</label><input class="inp" id="trPeer" maxlength="20" placeholder="구매자 닉네임"></div>
+    <div class="fi"><label>비고</label><textarea class="inp" id="trNote" maxlength="200" rows="2" placeholder="메모..."></textarea></div>
   </div>
   <div class="mf"><button class="btn g sm" onclick="cm('moTr')">취소</button><button class="btn p sm" id="trSubmitBtn" onclick="submitTr()">제출하기 →</button></div>
 </div></div>
@@ -562,8 +575,8 @@ input,textarea,select{font-family:var(--font);}
   <div class="mh"><h2>📢 공지사항 작성</h2><p>팩션원에게 전달할 공지를 작성하세요.</p></div>
   <div style="display:flex;flex-direction:column;gap:12px;">
     <div class="fi"><label>유형</label><select class="inp" id="ntType"><option>공지</option><option>긴급</option><option>이벤트</option></select></div>
-    <div class="fi"><label>제목</label><input class="inp" id="ntTitle" placeholder="공지 제목"></div>
-    <div class="fi"><label>내용</label><textarea class="inp" id="ntCont" rows="4" placeholder="공지 내용..."></textarea></div>
+    <div class="fi"><label>제목</label><input class="inp" id="ntTitle" maxlength="50" placeholder="공지 제목"></div>
+    <div class="fi"><label>내용</label><textarea class="inp" id="ntCont" maxlength="1000" rows="4" placeholder="공지 내용..."></textarea></div>
   </div>
   <div class="mf"><button class="btn g sm" onclick="cm('moNt')">취소</button><button class="btn p sm" onclick="submitNt()">등록하기 →</button></div>
 </div></div>
@@ -573,7 +586,7 @@ input,textarea,select{font-family:var(--font);}
 <div class="md wide">
   <div class="mh"><h2>🏅 직급 생성</h2><p>새 직급을 생성하고 권한을 설정하세요.</p></div>
   <div style="display:flex;flex-direction:column;gap:14px;">
-    <div class="fi"><label>직급명</label><input class="inp" id="newRankName" placeholder="예: 경위, 부팀장, 매니저..."></div>
+    <div class="fi"><label>직급명</label><input class="inp" id="newRankName" maxlength="15" placeholder="예: 경위, 부팀장, 매니저..."></div>
     <div class="fi">
       <label>직급 클래스</label>
       <div class="class-tabs" id="classTabs">
@@ -618,7 +631,7 @@ input,textarea,select{font-family:var(--font);}
 <div class="md">
   <div class="mh"><h2>📍 RP 구역 추가</h2><p>RP 구역과 승패 점수를 설정하세요.</p></div>
   <div style="display:flex;flex-direction:column;gap:12px;">
-    <div class="fi"><label>구역명</label><input class="inp" id="zoneName" placeholder="예: 강남구, 항구..."></div>
+    <div class="fi"><label>구역명</label><input class="inp" id="zoneName" maxlength="20" placeholder="예: 강남구, 항구..."></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="fi"><label>승리 점수</label><input class="inp" id="zoneWinScore" type="number" value="10"></div>
       <div class="fi"><label>패배 점수</label><input class="inp" id="zoneLoseScore" type="number" value="3"></div>
@@ -633,7 +646,7 @@ input,textarea,select{font-family:var(--font);}
 <div class="md">
   <div class="mh"><h2>📦 물품 추가</h2><p>거래 물품과 단가, 일일 한도를 설정하세요.</p></div>
   <div style="display:flex;flex-direction:column;gap:12px;">
-    <div class="fi"><label>물품명</label><input class="inp" id="itemName" placeholder="예: 마약, 무기..."></div>
+    <div class="fi"><label>물품명</label><input class="inp" id="itemName" maxlength="20" placeholder="예: 마약, 무기..."></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="fi"><label>단가 (₩)</label><input class="inp" id="itemPrice" type="number" value="50000"></div>
       <div class="fi"><label>일일 한도 (개)</label><input class="inp" id="itemLimit" type="number" value="3"></div>
@@ -970,7 +983,7 @@ input,textarea,select{font-family:var(--font);}
             <div>
               <div class="card">
                 <div class="ct" style="margin-bottom:14px;"><span class="ti">🏙️</span>팩션 기본 정보</div>
-                <div class="sr"><div class="si"><div class="sl2">팩션명</div></div><input class="inp" id="settingFN" style="width:160px;padding:7px 10px;"></div>
+                <div class="sr"><div class="si"><div class="sl2">팩션명</div></div><input class="inp" id="settingFN" maxlength="20" style="width:160px;padding:7px 10px;"></div>
                 <div class="sr"><div class="si"><div class="sl2">팩션 구분</div></div><select class="inp" id="settingFT" style="width:130px;padding:7px 10px;"><option>경찰 / 공무원</option><option>EMS / 소방</option><option>기업 / 회사</option><option>조직 / 마피아</option><option>갱단 / 범죄조직</option><option>기타</option></select></div>
                 <div class="sr"><div class="si"><div class="sl2">가입 코드</div><div class="sd">팩션원 가입 시 사용</div></div><div style="display:flex;gap:6px;align-items:center;"><span style="font-family:var(--mono);font-size:13px;color:var(--p);font-weight:700;" id="joinCode">-</span><button class="btn g sm" onclick="regenCode()">재발급</button></div></div>
                 <div style="margin-top:12px;"><button class="btn p" onclick="saveFactionInfo()">💾 팩션 정보 저장</button></div>
@@ -1294,7 +1307,7 @@ function renderJoin() {
     body.innerHTML = `${preview}${loginBtn}<div class="fi" style="margin-top:12px;"><label>가입코드</label><input class="code-inp" id="joinCodeInp" maxlength="10" placeholder="가입코드 입력" oninput="this.value=this.value.toUpperCase().replace(/[^0-9A-Z]/g,'');checkJoinCode(this.value)" ${!user?'disabled':''}><div id="factionFound" class="faction-found"></div><div style="font-size:11px;color:var(--tx3);margin-top:6px;">💡 가입코드는 팩션장 또는 관리자에게 문의하세요.</div></div>`;
     footer.innerHTML = `<div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px;"><button class="btn g sm" onclick="showScreen('screen-landing')">← 돌아가기</button><button class="btn p sm" id="joinNextBtn" onclick="joinNext()" disabled style="opacity:.4;cursor:not-allowed;">다음 →</button></div>`;
   } else if (joinStep === 2) {
-    body.innerHTML = `<div style="background:var(--pbg);border:1px solid var(--pbd);border-radius:var(--r);padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;"><div style="width:10px;height:10px;border-radius:50%;background:${joinFactionData?.theme?.primaryColor||'var(--p)'};flex-shrink:0;"></div><div><div style="font-size:13px;font-weight:700;color:var(--p);">${joinFactionData?.factionName||'팩션'}</div><div style="font-size:11px;color:var(--tx2);">${joinFactionData?.factionType||''}</div></div></div><div style="display:flex;flex-direction:column;gap:12px;"><div class="fi"><label>게임 내 닉네임 *</label><input class="inp" id="joinNick" placeholder="Turn City 게임 내 닉네임"></div><div class="fi"><label>고유번호 *</label><input class="inp" id="joinUID" placeholder="인게임 고유번호 (예: 12345)" type="number"><div style="font-size:11px;color:var(--tx3);margin-top:3px;">F8 콘솔 또는 /id 명령어로 확인</div></div><div class="fi"><label>자기소개 *</label><textarea class="inp" id="joinBio" rows="4" placeholder="간단한 자기소개를 작성해주세요. (최소 20자)"></textarea></div></div>`;
+    body.innerHTML = `<div style="background:var(--pbg);border:1px solid var(--pbd);border-radius:var(--r);padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;"><div style="width:10px;height:10px;border-radius:50%;background:${joinFactionData?.theme?.primaryColor||'var(--p)'};flex-shrink:0;"></div><div><div style="font-size:13px;font-weight:700;color:var(--p);">${joinFactionData?.factionName||'팩션'}</div><div style="font-size:11px;color:var(--tx2);">${joinFactionData?.factionType||''}</div></div></div><div style="display:flex;flex-direction:column;gap:12px;"><div class="fi"><label>게임 내 닉네임 *</label><input class="inp" id="joinNick" maxlength="20" placeholder="Turn City 게임 내 닉네임"></div><div class="fi"><label>고유번호 *</label><input class="inp" id="joinUID" maxlength="10" placeholder="인게임 고유번호 (예: 12345)" type="number"><div style="font-size:11px;color:var(--tx3);margin-top:3px;">F8 콘솔 또는 /id 명령어로 확인</div></div><div class="fi"><label>자기소개 *</label><textarea class="inp" id="joinBio" maxlength="300" rows="4" placeholder="간단한 자기소개를 작성해주세요. (최소 20자)"></textarea></div></div>`;
     footer.innerHTML = `<div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px;"><button class="btn g sm" onclick="joinStep=1;renderJoin()">← 이전</button><button class="btn p sm" onclick="submitJoinApply()">가입 신청하기 →</button></div>`;
   } else {
     body.innerHTML = `<div class="join-pending"><div class="jp-icon">🎉</div><h3>가입 신청 완료!</h3><p><b>${joinFactionData?.factionName}</b>에 가입 신청이 접수되었습니다.<br><br>팩션 관리자 승인 후 인트라넷에 접속 가능합니다.</p></div>`;
@@ -1316,11 +1329,12 @@ async function checkJoinCode(val) {
   if (!btn || !found) return;
   found.className = 'faction-found';
   btn.disabled = true; btn.style.opacity = '.4'; btn.style.cursor = 'not-allowed';
-  if (val.length < 4) return;
+  const normVal = (val||'').trim().toUpperCase().replace(/\s/g,'');
+  if (normVal.length < 4) return;
   clearTimeout(codeCheckTimer);
   codeCheckTimer = setTimeout(async () => {
     try {
-      const snap = await getDocs(query(collection(db,'factions'), where('joinCode','==',val)));
+      const snap = await getDocs(query(collection(db,'factions'), where('joinCode','==',normVal)));
       if (snap.empty) {
         found.className = 'faction-found show';
         found.style.background = 'rgba(255,92,92,.08)'; found.style.borderColor = 'rgba(255,92,92,.2)';
@@ -1342,6 +1356,16 @@ function joinNext() {
 }
 
 async function submitJoinApply() {
+  // 이미 다른 팩션 소속/신청 중인지 확인
+  if(auth.currentUser) {
+    try {
+      const uDoc = await getDoc(doc(db,'users',auth.currentUser.uid));
+      if(uDoc.exists() && uDoc.data().factionId) {
+        toast('이미 소속되었거나 가입 신청 중인 팩션이 있습니다.','error');
+        return;
+      }
+    } catch(e){}
+  }
   const nick = document.getElementById('joinNick')?.value.trim();
   const uid2 = document.getElementById('joinUID')?.value.trim();
   const bio  = document.getElementById('joinBio')?.value.trim();
@@ -1352,11 +1376,18 @@ async function submitJoinApply() {
   if (!user) { toast('로그인이 필요합니다.','error'); return; }
   try {
     const btn = document.querySelector('#joinFooter .btn.p'); if(btn){ btn.disabled=true; btn.textContent='신청 중...'; }
+    // 게임 고유번호 중복 체크
+    try {
+      const dupSnap = await getDocs(query(collection(db,'factions',joinFactionData.id,'members'), where('gameId','==',uid2)));
+      if(!dupSnap.empty) { toast('이미 사용 중인 고유번호입니다.','error'); return; }
+    } catch(e){}
     await setDoc(doc(db,'factions',joinFactionData.id,'members',user.uid),{
       userId:user.uid, username:nick, discordName:joinUserData?.username||'', avatar:joinUserData?.avatar||'',
       gameId:uid2, bio, rankId:null, rankName:'신청자', rankClass:'일반직', isFounder:false, perms:[],
       status:'pending', joinedAt:serverTimestamp(), rp_score:0, trade_count:0, warn_count:0,
     });
+    // users에 소속 기록 (중복 가입 방지)
+    try { await updateDoc(doc(db,'users',user.uid),{ factionId:joinFactionData.id, factionStatus:'pending' }); } catch(e){}
     await setDoc(doc(db,'users',user.uid),{ factionId:joinFactionData.id, factionStatus:'pending', updatedAt:serverTimestamp() },{ merge:true });
     await addDoc(collection(db,'factions',joinFactionData.id,'activity_logs'),{ type:'join_apply', message:`${nick}님이 가입 신청했습니다.`, userId:user.uid, createdAt:serverTimestamp() });
     joinStep = 3; renderJoin();
@@ -1462,10 +1493,7 @@ async function loadAllData(force = false) {
   const fid = ME.factionId;
   try {
     // 모든 컬렉션 병렬 로드
-    const [
-      membersSnap, ranksSnap, ntSnap, rpSnap, trSnap,
-      txSnap, warnSnap, attSnap, zoneSnap, itemSnap
-    ] = await Promise.all([
+    const results = await Promise.allSettled([
       getDocs(collection(db,'factions',fid,'members')),
       getDocs(query(collection(db,'factions',fid,'ranks'), orderBy('order','asc'))),
       getDocs(query(collection(db,'factions',fid,'notices'), orderBy('createdAt','desc'), limit(50))),
@@ -1477,6 +1505,14 @@ async function loadAllData(force = false) {
       getDocs(collection(db,'factions',fid,'zones')),
       getDocs(collection(db,'factions',fid,'items')),
     ]);
+    // 실패한 쿼리는 빈 결과로 처리 (전체 중단 방지)
+    const emptySnap = { docs: [], size: 0, forEach: ()=>{} };
+    const [membersSnap, ranksSnap, ntSnap, rpSnap, trSnap, txSnap, warnSnap, attSnap, zoneSnap, itemSnap] =
+      results.map((r,i) => {
+        if(r.status === 'fulfilled') return r.value;
+        console.warn(`[loadAllData] 쿼리 ${i} 실패:`, r.reason?.code);
+        return emptySnap;
+      });
 
     // 활동 로그 (인덱스 없을 수 있어서 별도)
     let logData = [];
@@ -1488,7 +1524,10 @@ async function loadAllData(force = false) {
     // 데이터 파싱
     const myDoc = membersSnap.docs.find(d => d.id === ME.uid);
     if (myDoc) ME.rp_score = myDoc.data().rp_score || 0;
-    const approvedMembers = membersSnap.docs.filter(d => d.data().status !== 'pending');
+    const approvedMembers = membersSnap.docs.filter(d => {
+      const st = d.data().status;
+      return st === 'approved' || d.data().isFounder === true;
+    });
     MEMBERS_CACHE = approvedMembers.map(d => ({ id:d.id, ...d.data() }));
     APPLY_DATA  = membersSnap.docs.filter(d => d.data().status === 'pending').map(d => ({ id:d.id, ...d.data() }));
     RESIGN_DATA = membersSnap.docs.filter(d => d.data().status === 'resigned').map(d => ({ id:d.id, ...d.data() }));
@@ -1839,6 +1878,7 @@ async function submitRp() {
 
 async function approveRp(btn, id, authorId, score) {
   if(!ME.factionId) return;
+  if(authorId === ME.uid) { toast('본인이 작성한 보고서는 승인할 수 없습니다.','error'); return; }
   try {
     await updateDoc(doc(db,'factions',ME.factionId,'reports_rp',id),{status:'approved'});
     if(authorId&&score){ await updateDoc(doc(db,'factions',ME.factionId,'members',authorId),{rp_score:fsIncrement(score)}); }
@@ -1941,7 +1981,6 @@ async function submitTr() {
       buyerId:String(buyerId), buyerName:peer, qty, amount, note, date:today,
       status:'pending', createdAt:serverTimestamp(),
     });
-    await updateDoc(doc(db,'factions',ME.factionId,'members',ME.uid),{ trade_count:fsIncrement(qty) });
     await addDoc(collection(db,'factions',ME.factionId,'activity_logs'),{
       type:'trade_submitted', message:`${ME.name}님이 거래 보고서를 제출했습니다. (${item.name} ${qty}개)`,
       userId:ME.uid, createdAt:serverTimestamp(),
@@ -2012,6 +2051,8 @@ async function approveApply(id, name) {
       status:'approved', rankId:defaultRank?.id||'', rankName:defaultRank?.name||'팩션원',
       rankClass:defaultRank?.cls||'일반직', perms:defaultRank?.perms||[],
     });
+    await updateDoc(doc(db,'factions',ME.factionId),{ memberCount: fsIncrement(1) });
+    try { await updateDoc(doc(db,'users',id),{ factionStatus:'approved' }); } catch(e){}
     await addDoc(collection(db,'factions',ME.factionId,'activity_logs'),{ type:'member_approved', message:`${name}님이 팩션에 가입했습니다.`, userId:id, createdAt:serverTimestamp() });
     toast(`${name}님 가입 승인 완료!`,'success'); await loadAllData();
   } catch(err){ toast('오류: '+err.message,'error'); }
@@ -2019,9 +2060,12 @@ async function approveApply(id, name) {
 
 async function rejectApply(id, name) {
   if(!ME.factionId) return;
+  if(!confirm(`${name}님의 가입을 거절하시겠습니까?`)) return;
   try {
-    await updateDoc(doc(db,'factions',ME.factionId,'members',id),{status:'rejected'});
-    toast(`${name}님 가입 거절.`,'info'); await loadAllData();
+    // 거절 시 members에서 삭제 + users factionId 해제 (재가입 가능)
+    await deleteDoc(doc(db,'factions',ME.factionId,'members',id));
+    try { await updateDoc(doc(db,'users',id),{ factionId:null, factionStatus:null }); } catch(e){}
+    toast(`${name}님 가입 거절 처리.`,'info'); await loadAllData();
   } catch(err){ toast('오류: '+err.message,'error'); }
 }
 
@@ -2029,7 +2073,8 @@ async function acceptResign(id, name) {
   if(!ME.factionId) return;
   try {
     await deleteDoc(doc(db,'factions',ME.factionId,'members',id));
-    await updateDoc(doc(db,'users',id),{factionId:null});
+    try { await updateDoc(doc(db,'users',id),{factionId:null, factionStatus:null}); } catch(e){}
+    await updateDoc(doc(db,'factions',ME.factionId),{ memberCount: fsIncrement(-1) });
     toast(`${name}님 퇴단 처리 완료.`,'success'); await loadAllData();
   } catch(err){ toast('오류: '+err.message,'error'); }
 }
@@ -2285,7 +2330,7 @@ async function obNext() {
     try {
       // API 서버에 코드 검증 + 팩션 창설 요청
       // Firebase ID 토큰 발급해서 Authorization 헤더로 전송
-      const idToken = await auth.currentUser.getIdToken();
+      const idToken = await auth.currentUser.getIdToken(true);
       const res = await fetch(API_URL + '/api/intranet/verify', {
         method: 'POST',
         credentials: 'include',
@@ -2527,6 +2572,19 @@ function esc(str) {
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+
+// ── 로딩 표시 ─────────────────────────────────
+function showLoading(text) {
+  const ov = document.getElementById('loadingOverlay');
+  const tx = document.getElementById('loadingText');
+  if(tx && text) tx.textContent = text;
+  if(ov) ov.style.display = 'flex';
+}
+function hideLoading() {
+  const ov = document.getElementById('loadingOverlay');
+  if(ov) ov.style.display = 'none';
+}
+
 function toast(msg,type='info'){
   const ic={success:'✅',error:'❌',info:'ℹ️',warn:'⚠️'};
   const w=document.getElementById('tw'); if(!w) return;
@@ -2551,21 +2609,27 @@ document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',e=>{if(e.
 
 // ── 랜딩 통계 로드 ────────────────────────────
 async function loadLandingStats() {
+  const setStats = (fac, mem) => {
+    const f1=document.getElementById('lstFactions'); const f2=document.getElementById('lstMembers');
+    if(f1) f1.textContent=fac; if(f2) f2.textContent=mem;
+  };
+  // 5분 캐시 (방문자 많을 때 read 절약)
+  try {
+    const cached = sessionStorage.getItem('tc_landing_stats');
+    if(cached) {
+      const { fac, mem, ts } = JSON.parse(cached);
+      if(Date.now()-ts < 300000) { setStats(fac, mem); return; }
+    }
+  } catch(e){}
   try {
     const facSnap = await getDocs(collection(db, 'factions'));
-    const facCount = facSnap.size;
     let memberTotal = 0;
     facSnap.forEach(f => { memberTotal += (f.data().memberCount || 0); });
-    const f1 = document.getElementById('lstFactions');
-    const f2 = document.getElementById('lstMembers');
-    if (f1) f1.textContent = facCount;
-    if (f2) f2.textContent = memberTotal;
+    setStats(facSnap.size, memberTotal);
+    try { sessionStorage.setItem('tc_landing_stats', JSON.stringify({ fac:facSnap.size, mem:memberTotal, ts:Date.now() })); } catch(e){}
   } catch(e) {
     console.warn('[랜딩 통계]', e);
-    const f1 = document.getElementById('lstFactions');
-    const f2 = document.getElementById('lstMembers');
-    if (f1) f1.textContent = '0';
-    if (f2) f2.textContent = '0';
+    setStats('0','0');
   }
 }
 
@@ -2723,9 +2787,13 @@ function loadSettingsToggles(settings) {
 // ── 팩션원 관리 모달 ──────────────────────────
 let mmTargetId = null;
 function openMemberManage(memberId, name) {
+  if(memberId === ME.uid) { toast('본인은 관리 대상이 아닙니다.','error'); return; }
   mmTargetId = memberId;
   const t = document.getElementById('mmTarget');
   if(t) t.textContent = `대상: ${name}`;
+  // 팩션장만 위임 버튼 표시
+  const tw = document.getElementById('mmTransferWrap');
+  if(tw) tw.style.display = ME.isFounder ? 'block' : 'none';
   const sel = document.getElementById('mmRank');
   if(sel) {
     sel.innerHTML = '<option value="">직급 선택...</option>';
@@ -2758,14 +2826,46 @@ async function mmKick() {
   if(!confirm('정말 추방하시겠습니까? 되돌릴 수 없습니다.')) return;
   try {
     await deleteDoc(doc(db,'factions',ME.factionId,'members',mmTargetId));
+    try { await updateDoc(doc(db,'users',mmTargetId),{factionId:null, factionStatus:null}); } catch(e){}
+    await updateDoc(doc(db,'factions',ME.factionId),{ memberCount: fsIncrement(-1) });
     cm('moMemberManage');
     toast('추방 처리 완료.','info');
     await loadAllData();
   } catch(err){ toast('추방 실패: '+err.message,'error'); }
 }
 
+
+// ── 팩션장 위임 ───────────────────────────────
+async function mmTransfer() {
+  if(!mmTargetId || !ME.factionId || !ME.isFounder) return;
+  if(!confirm('정말 이 팩션원에게 팩션장을 위임하시겠습니까?\n본인은 일반 직급으로 강등되며 되돌릴 수 없습니다.')) return;
+  try {
+    const founderRank = RANKS_DATA.find(r => r.cls==='고위직') || RANKS_DATA[0];
+    const normalRank  = RANKS_DATA.find(r => r.cls==='일반직') || RANKS_DATA[RANKS_DATA.length-1];
+    const allPerms = Object.keys(PERMS);
+    // 대상 → 팩션장
+    await updateDoc(doc(db,'factions',ME.factionId,'members',mmTargetId),{
+      isFounder:true, rankClass:'고위직', perms:allPerms,
+      rankId:founderRank?.id||'', rankName:founderRank?.name||'팩션장',
+    });
+    // 본인 → 일반직
+    await updateDoc(doc(db,'factions',ME.factionId,'members',ME.uid),{
+      isFounder:false, rankClass:normalRank?.cls||'일반직', perms:normalRank?.perms||[],
+      rankId:normalRank?.id||'', rankName:normalRank?.name||'팩션원',
+    });
+    await updateDoc(doc(db,'factions',ME.factionId),{ founderId: mmTargetId });
+    await addDoc(collection(db,'factions',ME.factionId,'activity_logs'),{
+      type:'founder_transferred', message:`팩션장이 위임되었습니다.`, userId:ME.uid, createdAt:serverTimestamp(),
+    });
+    cm('moMemberManage');
+    toast('팩션장 위임 완료. 페이지를 새로고침합니다.','success');
+    setTimeout(()=>location.reload(), 1500);
+  } catch(err){ toast('위임 실패: '+err.message,'error'); }
+}
+
 // ── 사직서 제출 ───────────────────────────────
 async function submitResign() {
+  if(ME.isFounder) { toast('팩션장은 사직할 수 없습니다. 먼저 다른 팩션원에게 팩션장을 위임해주세요.','error'); cm('moResign'); return; }
   const reason = document.getElementById('resignReason')?.value.trim();
   if(!reason) { toast('사직 사유를 입력해주세요.','error'); return; }
   if(!ME.factionId || !ME.uid) return;
@@ -2822,7 +2922,13 @@ async function approveTr(id) {
   try {
     const trRef = doc(db,'factions',ME.factionId,'reports_trade',id);
     const trDoc = await getDoc(trRef);
+    if(trDoc.data()?.authorId === ME.uid) { toast('본인이 작성한 보고서는 승인할 수 없습니다.','error'); return; }
     await updateDoc(trRef,{ status:'approved' });
+    // 승인 시 작성자 실적(trade_count) 반영
+    const trData2 = trDoc.data();
+    if(trData2?.authorId) {
+      try { await updateDoc(doc(db,'factions',ME.factionId,'members',trData2.authorId),{ trade_count: fsIncrement(trData2.qty||1) }); } catch(e){}
+    }
     // 매출을 금고에 반영
     const amount = trDoc.data()?.amount || 0;
     if(amount > 0) {
@@ -2909,8 +3015,19 @@ async function saveRankEdit() {
 
 async function deleteRank(rankId, name) {
   if(!ME.factionId) return;
-  if(!confirm(`'${name}' 직급을 삭제하시겠습니까?`)) return;
+  // 이 직급 쓰는 멤버 확인
+  const usingMembers = MEMBERS_CACHE.filter(m => m.rankId === rankId);
+  const founderUsing = usingMembers.find(m => m.isFounder);
+  if(founderUsing) { toast('팩션장 직급은 삭제할 수 없습니다.','error'); return; }
+  const msg = usingMembers.length > 0
+    ? `'${name}' 직급을 삭제하시겠습니까?\n이 직급의 팩션원 ${usingMembers.length}명이 직급 미지정 상태가 됩니다.`
+    : `'${name}' 직급을 삭제하시겠습니까?`;
+  if(!confirm(msg)) return;
   try {
+    // 해당 직급 멤버들을 미지정으로
+    for(const m of usingMembers) {
+      try { await updateDoc(doc(db,'factions',ME.factionId,'members',m.id),{ rankId:null, rankName:'미지정', perms:[] }); } catch(e){}
+    }
     await deleteDoc(doc(db,'factions',ME.factionId,'ranks',rankId));
     toast('직급 삭제 완료.','info');
     await loadAllData();
@@ -2937,9 +3054,10 @@ function filterMembers(q) {
 }
 
 window.om=om; window.cm=cm; window.toast=toast;
+window.showLoading=showLoading; window.hideLoading=hideLoading;
 window.saveProfile=saveProfile; window.openEditProfile=openEditProfile;
 window.saveFactionInfo=saveFactionInfo; window.saveSettings=saveSettings; window.loadSettingsToggles=loadSettingsToggles;
-window.openMemberManage=openMemberManage; window.mmChangeRank=mmChangeRank; window.mmKick=mmKick;
+window.openMemberManage=openMemberManage; window.mmChangeRank=mmChangeRank; window.mmKick=mmKick; window.mmTransfer=mmTransfer;
 window.submitResign=submitResign; window.openWarnModal=openWarnModal; window.submitWarn=submitWarn;
 window.approveTr=approveTr; window.rejectTr=rejectTr; window.deleteNotice=deleteNotice;
 window.openRankEdit=openRankEdit; window.selectEditClass=selectEditClass; window.saveRankEdit=saveRankEdit; window.deleteRank=deleteRank;
