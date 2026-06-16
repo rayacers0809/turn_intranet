@@ -1169,7 +1169,7 @@ function renderNav() {
     const d = document.createElement('div');
     d.className = 'ni' + (locked?' locked':'');
     d.dataset.p = item.p;
-    d.innerHTML = `<span class="ni-ic">${item.icon}</span>${item.label}${item.badge?`<span class="ni-badge" id="${item.badge}">0</span>`:''}${locked?'<span class="ni-lock">🔒</span>':''}`;
+    d.innerHTML = `<span class="ni-ic">${item.icon}</span>${item.label}${item.badge?`<span class="ni-badge" id="${item.badge}" style="display:none;"></span>`:''}${locked?'<span class="ni-lock">🔒</span>':''}`;
     if (!locked) d.addEventListener('click', () => navTo(item.p, d));
     nav.appendChild(d);
   });
@@ -1192,10 +1192,11 @@ function renderUserInfo() {
 function applyPermUI() {
   const hide = (id, perm) => { const el=document.getElementById(id); if(el) el.style.display=perm&&!can(perm)?'none':''; };
   hide('btnWriteNotice','notice_write');
-  hide('btnCreateRank', null); // 팩션장만
   hide('btnPromote','rank_manage');
   hide('btnWarn','warn_give');
-  if (document.getElementById('btnCreateRank')) document.getElementById('btnCreateRank').style.display = ME.isFounder ? '' : 'none';
+  // 직급 생성은 팩션장만
+  const bcr = document.getElementById('btnCreateRank');
+  if (bcr) bcr.style.display = ME.isFounder ? '' : 'none';
 }
 
 // ══════════════════════════════════════════
@@ -1223,8 +1224,11 @@ async function enterIntranet() {
 }
 
 function startOBLogin() {
-  sessionStorage.setItem('tc_mode','ob');
-  window.location.href = API_URL + '/auth/discord';
+  if (auth.currentUser) {
+    obStep=1; renderOB(); om('moOB');
+    return;
+  }
+  window.location.href = API_URL + '/auth/discord?mode=ob';
 }
 
 async function handleOAuthCallback(token) {
@@ -1275,6 +1279,14 @@ async function checkUserFaction(uid) {
     if (!memberDoc.exists()) { showJoinScreen(userData); return; }
     const memberData = memberDoc.data();
     if (memberData.status === 'pending') { showJoinScreen(userData,'pending'); return; }
+    if (memberData.status === 'rejected') {
+      // 거절된 유저 - 멤버 문서 정리 후 재가입 가능하게
+      try { await deleteDoc(doc(db,'factions',userData.factionId,'members',uid)); } catch(e){}
+      try { await updateDoc(doc(db,'users',uid),{ factionId:null, factionStatus:null }); } catch(e){}
+      toast('가입이 거절되었습니다. 다시 신청해주세요.','info');
+      showJoinScreen(null); return;
+    }
+    if (memberData.status === 'resigned') { showJoinScreen(userData,'pending'); return; }
     const factionDoc = await getDoc(doc(db,'factions',userData.factionId));
     if (!factionDoc.exists()) { showJoinScreen(userData); return; }
     await loadIntranet(factionDoc.data(), memberData, userData);
@@ -1387,7 +1399,6 @@ async function submitJoinApply() {
       status:'pending', joinedAt:serverTimestamp(), rp_score:0, trade_count:0, warn_count:0,
     });
     // users에 소속 기록 (중복 가입 방지)
-    try { await updateDoc(doc(db,'users',user.uid),{ factionId:joinFactionData.id, factionStatus:'pending' }); } catch(e){}
     await setDoc(doc(db,'users',user.uid),{ factionId:joinFactionData.id, factionStatus:'pending', updatedAt:serverTimestamp() },{ merge:true });
     await addDoc(collection(db,'factions',joinFactionData.id,'activity_logs'),{ type:'join_apply', message:`${nick}님이 가입 신청했습니다.`, userId:user.uid, createdAt:serverTimestamp() });
     joinStep = 3; renderJoin();
@@ -1557,7 +1568,9 @@ async function loadAllData(force = false) {
     renderItemList();
     updateRpZoneSelect();
     updateTrItemSelect();
-    updateBadges();
+    const pendingRpCount = rpData.filter(r=>r.status==='pending').length;
+    const pendingTrCount = trData.filter(r=>r.status==='pending').length;
+    updateBadges(pendingRpCount, pendingTrCount);
     console.log('[loadAllData] 완료 - 멤버:', approvedMembers.length, 'RP:', rpData.length, '거래:', trData.length);
   } catch(err) { console.error('[loadAllData]',err.code, err.message); toast('데이터 로드 오류: '+err.message,'error'); }
 }
@@ -1820,16 +1833,17 @@ function updateTrItemSelect() {
   ITEMS.forEach(item => { const opt=document.createElement('option'); opt.value=item.id; opt.textContent=`${item.name} (₩${(item.price||0).toLocaleString()})`; sel.appendChild(opt); });
 }
 
-function updateBadges() {
+function updateBadges(pendingRp, pendingTr) {
   const ab=document.getElementById('applyBadge');
   if(ab) ab.style.display = APPLY_DATA.length > 0 ? 'inline-block' : 'none';
   const rb=document.getElementById('resignBadge');
   if(rb) rb.style.display = RESIGN_DATA.length > 0 ? 'inline-block' : 'none';
-  // 사이드바 배지도 점으로
-  ['ntBadge','rpBadge','wBadge'].forEach(id => {
-    const el=document.getElementById(id);
-    if(el) el.style.display='none'; // 일단 숨김, 실제 데이터 있으면 표시
-  });
+  // 사이드바: 가입신청/사직 대기 있으면 팩션원관리 배지 표시
+  const mb=document.getElementById('mbBadge');
+  if(mb) mb.style.display = (APPLY_DATA.length+RESIGN_DATA.length)>0 ? 'inline-block' : 'none';
+  // 승인 대기 RP 보고서 배지
+  const rpb=document.getElementById('rpBadge');
+  if(rpb) rpb.style.display = (pendingRp>0) ? 'inline-block' : 'none';
 }
 
 // ══════════════════════════════════════════
