@@ -1812,8 +1812,9 @@ function renderAttendance(members, attData) {
         if(openSession) {
           // 현재 출근 중 - 출근 시각 + 표시
           const t = new Date(openSession.checkIn);
+          const gameIcon = openSession.source === 'game' ? '📱' : '';
           c.className='ac ao';
-          c.innerHTML = `<div style="font-size:10px;font-weight:600;">${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}</div><div style="font-size:8px;color:var(--success);">● 근무중</div>`;
+          c.innerHTML = `<div style="font-size:10px;font-weight:600;">${gameIcon}${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}</div><div style="font-size:8px;color:var(--success);">● 근무중</div>`;
         } else if(totalMin > 0) {
           // 퇴근 완료 - 총 근무시간 표시
           const h = Math.floor(totalMin/60), mm = totalMin%60;
