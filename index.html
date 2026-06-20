@@ -857,6 +857,10 @@ input,textarea,select{font-family:var(--font);}
           <div class="sc cw"><div class="sl">💰 거래 보고서</div><div class="sv" id="dashTradeCount">-</div><div class="ss">이번 달</div></div>
           <div class="sc cd"><div class="sl">⚠️ 내부경고</div><div class="sv" id="dashWarnCount">-</div><div class="ss">누적</div></div>
         </div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="ch"><div class="ct"><span class="ti">📢</span>최근 공지사항</div><button class="btn g sm" onclick="navTo('notice')" style="font-size:11px;padding:4px 10px;">전체보기</button></div>
+          <div id="dashNotices"><div style="text-align:center;padding:20px;color:var(--tx3);">로딩 중...</div></div>
+        </div>
         <div class="g2">
           <div class="card">
             <div class="ch"><div class="ct"><span class="ti">📌</span>최근 활동</div></div>
@@ -1455,6 +1459,7 @@ async function loadIntranet(factionData, memberData, userData) {
   // 가입코드
   const jc = document.getElementById('joinCode'); if(jc) jc.textContent = factionData.joinCode || '-';
   renderUserInfo(); renderNav(); applyPermUI(); startClock();
+  window._inIntranet = true;
   showScreen('screen-app');
   hideLoading();
   toast(`환영합니다, ${ME.name}님! 👋`, 'success');
@@ -1549,7 +1554,9 @@ function setupRealtimeListeners() {
 
   // 3. 공지
   _unsubscribers.push(onSnapshot(query(collection(db,'factions',fid,'notices'), orderBy('createdAt','desc'), limit(50)), (snap) => {
-    renderNotices(snap.docs.map(d => ({ id:d.id, ...d.data() })));
+    const data = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    renderNotices(data);
+    renderDashNotices(data);
   }, err => console.warn('[공지 리스너]', err.code)));
 
   // 4. RP 보고서
@@ -1768,6 +1775,30 @@ function renderDashboard(membersSnap, rpData, logData) {
       });
     }
   }
+}
+
+
+// ── 대시보드 최근 공지 ────────────────────────
+function renderDashNotices(notices) {
+  const el = document.getElementById('dashNotices');
+  if(!el) return;
+  if(!notices || notices.length === 0) {
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--tx3);">등록된 공지가 없습니다.</div>';
+    return;
+  }
+  const tm = { emergency:'nt-emergency', important:'nt-important', notice:'nt-notice', event:'nt-event' };
+  const tl = { emergency:'긴급', important:'중요', notice:'공지', event:'이벤트' };
+  // 최근 3개만
+  el.innerHTML = notices.slice(0,3).map(n => {
+    const date = n.createdAt?.toDate?.()?.toLocaleDateString('ko-KR') || '';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--bd);cursor:pointer;" onclick="navTo('notice')">
+      <span class="nt-type ${tm[n.type]||'nt-notice'}" style="flex-shrink:0;">${tl[n.type]||'공지'}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(n.title)||'-'}</div>
+        <div style="font-size:11px;color:var(--tx3);">${esc(n.authorName)||'-'} · ${date}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderNotices(notices) {
@@ -2025,6 +2056,7 @@ async function submitRp() {
     cm('moRp');
     toast(`RP 보고서 제출! (${rpResult==='win'?'승리':'패배'} +${score}점)`,'success');
     document.getElementById('rpZone').value=''; document.getElementById('rpOpponent').value=''; document.getElementById('rpCont').value='';
+    notifyWebhook('rp', { zone: zone?.name||'-', result: rpResult, author:ME.name });
     currentZone=null; document.getElementById('rpScorePreview').style.display='none'; selectRpResult('win');
   } catch(err){ toast('제출 실패: '+err.message,'error'); }
   finally { rpProcessing = false; }
@@ -2152,6 +2184,7 @@ async function submitTr() {
 
     cm('moTr');
     toast(`거래 보고서 제출! (${item.name} x${qty} = ₩${amount.toLocaleString()})`,'success');
+    notifyWebhook('trade', { item:item.name, qty, amount, author:ME.name });
     ['trItem','trBuyerId','trPeer','trNote'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     document.getElementById('trQty').value='1';
     document.getElementById('trItemInfo').style.display='none';
@@ -2191,6 +2224,7 @@ async function submitNt() {
       type:tm[type]||'notice',title:t,content:cont||'',authorId:ME.uid,authorName:`${ME.rankName} ${ME.name}`,createdAt:serverTimestamp(),
     });
     cm('moNt'); toast('공지가 등록되었습니다!','success');
+    notifyWebhook('notice', { title:t, content:cont, author:ME.name });
     document.getElementById('ntTitle').value=''; document.getElementById('ntCont').value='';
   } catch(err){ toast('오류: '+err.message,'error'); }
   finally { ntProcessing = false; }
@@ -3126,6 +3160,7 @@ async function submitWarn() {
     await updateDoc(doc(db,'factions',ME.factionId,'members',targetId),{ warn_count: fsIncrement(1) });
     cm('moWarn');
     toast('경고 부여 완료.','info');
+    notifyWebhook('warn', { target: target?.username||'-', level, reason });
     document.getElementById('warnReason').value='';
   } catch(err){ toast('부여 실패: '+err.message,'error'); }
 }
@@ -3308,9 +3343,24 @@ function renderOnlineList() {
   }).join('');
 }
 
+
+// ── 웹훅 발송 (서버 경유) ─────────────────────
+async function notifyWebhook(type, data) {
+  if(!ME.factionId || !auth.currentUser) return;
+  try {
+    const token = await auth.currentUser.getIdToken();
+    await fetch(API_URL + '/api/intranet/notify', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+token },
+      body: JSON.stringify({ factionId: ME.factionId, type, data }),
+    });
+  } catch(e) { console.warn('[웹훅]', e); }
+}
+
 window.om=om; window.cm=cm; window.toast=toast;
 window.showLoading=showLoading; window.hideLoading=hideLoading;
 window.openOnlineList=openOnlineList; window.renderOnlineList=renderOnlineList;
+window.renderDashNotices=renderDashNotices; window.notifyWebhook=notifyWebhook;
 window.saveCz=saveCz; window.loadMyTheme=loadMyTheme;
 window.saveProfile=saveProfile; window.openEditProfile=openEditProfile;
 window.saveFactionInfo=saveFactionInfo; window.saveSettings=saveSettings; window.loadSettingsToggles=loadSettingsToggles;
@@ -3365,6 +3415,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (!user) window._discordProfile = null;
     renderLanding();
+
+    // 새로고침 시 본인 팩션 있으면 자동으로 인트라넷 진입
+    if (user && !window._autoEntered && !window._inIntranet) {
+      window._autoEntered = true;
+      try {
+        const uDoc = await getDoc(doc(db,'users',user.uid));
+        if (uDoc.exists() && uDoc.data().factionId) {
+          // 팩션 멤버 확인
+          const fid = uDoc.data().factionId;
+          const mDoc = await getDoc(doc(db,'factions',fid,'members',user.uid));
+          if (mDoc.exists() && (mDoc.data().status === 'approved' || mDoc.data().isFounder)) {
+            await checkUserFaction(user.uid);
+          }
+        }
+      } catch(e) { console.warn('[자동진입]', e); }
+    }
   });
 
   // 초기 렌더
