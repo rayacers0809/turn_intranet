@@ -2069,6 +2069,7 @@ async function submitFine() {
         targetUserId: targetId,
         totalFine, totalJail,
         items: sel.map(i=>({ name:i.name, fine:i.fine, jail:i.jail })),
+        issuerName: ME.name,
       }),
     });
     const data = await res.json();
