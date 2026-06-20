@@ -1226,8 +1226,20 @@ const FINE_TABLE = {
   ],
 };
 const BAIL_PER_MIN = 1000000; // 보석금: 구금 1분당 100만원
-// 공무 팩션 판별
-function isGovFaction() { return ME.factionType === 'police' || ME.factionType === 'ems'; }
+// 공무 팩션 판별 (factionType 또는 tag/name으로)
+function isGovFaction() {
+  const t = (ME.factionType || '').toLowerCase();
+  if (t === 'police' || t === 'ems') return true;
+  // factionType이 한글이거나 다르게 저장된 경우 대비
+  const govKeywords = ['police','ems','경찰','공무','소방','병원','구급'];
+  const checkStr = `${ME.factionType||''} ${ME.factionName||''} ${ME.factionTag||''}`.toLowerCase();
+  return govKeywords.some(k => checkStr.includes(k.toLowerCase()));
+}
+// 디버그용 노출
+window.checkGov = function() {
+  console.log('factionType:', ME.factionType, '| factionName:', ME.factionName, '| 공무판별:', isGovFaction());
+  return isGovFaction();
+};
 // 주간 키 (일요일 00시 기준)
 function getWeekKey(d) {
   d = d || new Date();
@@ -1571,6 +1583,8 @@ async function loadIntranet(factionData, memberData, userData) {
     avatar:      memberData.avatar    || userData.avatar || '',
     factionId:   userData.factionId,
     factionType: factionData.factionType || '',
+    factionName: factionData.factionName || '',
+    factionTag:  factionData.factionTag || '',
     rp_score:    memberData.rp_score  || 0,
     gameNick:    memberData.gameNick  || memberData.username || '',
     gameId:      memberData.gameId    || '',
