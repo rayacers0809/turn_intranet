@@ -251,6 +251,15 @@ input,textarea,select{font-family:var(--font);}
         <button class="btn g sm" onclick="testWh('member')">테스트</button>
       </div>
     </div>
+
+    <div class="webhook-section">
+      <div class="wh-title">🚨 벌금 부과 로그 (공무 전용)</div>
+      <div class="wh-row">
+        <div class="wh-status none" id="wh-fine-status"></div>
+        <input class="wh-input" id="wh-fine" placeholder="https://discord.com/api/webhooks/...">
+        <button class="btn g sm" onclick="testWh('fine')">테스트</button>
+      </div>
+    </div>
   </div>
 
   <div style="margin-bottom:16px;">
@@ -401,7 +410,7 @@ input,textarea,select{font-family:var(--font);}
         <div class="card">
           <div class="ch"><div class="ct"><span class="ti">🔔</span>전체 팩션 웹훅 현황</div></div>
           <table class="tbl">
-            <thead><tr><th>팩션명</th><th>RP보고서</th><th>거래보고서</th><th>내부경고</th><th>공지</th><th>팩션원</th><th>관리</th></tr></thead>
+            <thead><tr><th>팩션명</th><th>RP보고서</th><th>거래보고서</th><th>내부경고</th><th>공지</th><th>팩션원</th><th>벌금</th><th>관리</th></tr></thead>
             <tbody id="whTable"></tbody>
           </table>
         </div>
@@ -777,7 +786,7 @@ function renderWebhooks() {
   const tb = document.getElementById('whTable');
   tb.innerHTML = '';
   MOCK_FACTIONS.forEach(f => {
-    const wh = f.webhooks;
+    const wh = f.webhooks || {};
     const dot = (v) => `<div style="width:8px;height:8px;border-radius:50%;background:${v?'var(--success)':'var(--tx3)'};margin:0 auto;"></div>`;
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -787,6 +796,7 @@ function renderWebhooks() {
       <td style="text-align:center;">${dot(wh.warn)}</td>
       <td style="text-align:center;">${dot(wh.notice)}</td>
       <td style="text-align:center;">${dot(wh.member)}</td>
+      <td style="text-align:center;">${dot(wh.fine)}</td>
       <td><button class="btn g sm" onclick="openFactionDetail('${f.id}')">설정</button></td>`;
     tb.appendChild(tr);
   });
@@ -815,7 +825,7 @@ function openFactionDetail(factionId) {
   document.getElementById('fdSub').textContent = `팩션 ID: ${f.id}`;
 
   // 웹훅 채우기
-  ['rp','trade','warn','notice','member'].forEach(key => {
+  ['rp','trade','warn','notice','member','fine'].forEach(key => {
     const inp = document.getElementById(`wh-${key}`);
     const status = document.getElementById(`wh-${key}-status`);
     if (inp) inp.value = f.webhooks[key] || '';
@@ -891,7 +901,7 @@ async function saveFactionDetail() {
   if (!f) return;
 
   const webhooks = {};
-  ['rp','trade','warn','notice','member'].forEach(key => {
+  ['rp','trade','warn','notice','member','fine'].forEach(key => {
     webhooks[key] = document.getElementById(`wh-${key}`)?.value.trim() || '';
   });
 
@@ -903,7 +913,7 @@ async function saveFactionDetail() {
   if (data?.ok) {
     // 로컬 반영
     f.webhooks = webhooks;
-    ['rp','trade','warn','notice','member'].forEach(key => {
+    ['rp','trade','warn','notice','member','fine'].forEach(key => {
       const status = document.getElementById(`wh-${key}-status`);
       if (status) status.className = 'wh-status ' + (webhooks[key] ? 'ok' : 'none');
     });
