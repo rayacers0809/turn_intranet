@@ -983,7 +983,84 @@ input,textarea,select{font-family:var(--font);}
       </div>
 
       <!-- 설정 -->
-      <div class="page" id="page-settings">
+      <!-- ── 벌금 계산기 (공무 전용) ── -->
+<div class="page" id="page-fines">
+  <div class="g2" style="grid-template-columns:1.4fr 1fr;align-items:start;">
+    <!-- 왼쪽: 계산기 -->
+    <div class="card">
+      <div class="ch"><div class="ct"><span class="ti">🚨</span>벌금 계산기</div></div>
+      <div style="font-size:12px;color:var(--tx3);margin-bottom:12px;">위반 항목을 선택하면 자동으로 합산됩니다.</div>
+      <div id="fineCategories" style="display:flex;flex-direction:column;gap:14px;max-height:480px;overflow-y:auto;padding-right:4px;"></div>
+    </div>
+
+    <!-- 오른쪽: 합계 + 전송 -->
+    <div style="display:flex;flex-direction:column;gap:16px;position:sticky;top:0;">
+      <div class="card">
+        <div class="ch"><div class="ct"><span class="ti">🧾</span>부과 내역</div></div>
+        <div id="fineSelected" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;min-height:40px;">
+          <div style="text-align:center;color:var(--tx3);font-size:12px;padding:12px;">선택된 항목이 없습니다.</div>
+        </div>
+        <div style="border-top:1px solid var(--bd);padding-top:12px;display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;justify-content:space-between;font-size:14px;">
+            <span style="color:var(--tx2);">총 벌금</span>
+            <span style="font-weight:700;color:var(--p);" id="fineTotalFine">₩0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:14px;">
+            <span style="color:var(--tx2);">총 구금</span>
+            <span style="font-weight:700;color:#EF4444;" id="fineTotalJail">0분</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--tx3);">
+            <span>보석금 환산</span>
+            <span id="fineBail">₩0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ch"><div class="ct"><span class="ti">📤</span>부과 대상</div></div>
+        <label class="fl">대상 고유번호 (userid)</label>
+        <input class="inp" id="fineTargetId" type="text" placeholder="예: 1234" maxlength="10">
+        <label style="display:flex;align-items:center;gap:8px;margin:12px 0;font-size:13px;cursor:pointer;">
+          <input type="checkbox" id="fineNewbie" onchange="recalcFines()">
+          <span>뉴비 감면 적용</span>
+          <select class="inp" id="fineNewbieType" style="width:auto;padding:4px 8px;font-size:12px;" onchange="recalcFines()">
+            <option value="0">1회 (전액 면제)</option>
+            <option value="50">2회 (50% 감면)</option>
+          </select>
+        </label>
+        <button class="btn p" style="width:100%;" onclick="submitFine()">🚨 벌금 부과 전송</button>
+        <div style="font-size:11px;color:var(--tx3);margin-top:8px;text-align:center;">전송 시 게임에 벌금이 부과되며 본인 실적에 기록됩니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 주간 통계 -->
+  <div class="card" style="margin-top:16px;">
+    <div class="ch">
+      <div class="ct"><span class="ti">📊</span>이번 주 부과 실적</div>
+      <span style="font-size:12px;color:var(--tx3);" id="fineWeekRange"></span>
+    </div>
+    <div style="font-size:11px;color:var(--tx3);margin-bottom:10px;">매주 일요일 00시에 초기화됩니다.</div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="border-bottom:2px solid var(--bd);">
+            <th style="text-align:left;padding:8px;">순위</th>
+            <th style="text-align:left;padding:8px;">공무원</th>
+            <th style="text-align:right;padding:8px;">부과 건수</th>
+            <th style="text-align:right;padding:8px;">총 벌금</th>
+            <th style="text-align:right;padding:8px;">총 구금</th>
+          </tr>
+        </thead>
+        <tbody id="fineStatsBody">
+          <tr><td colspan="5" style="text-align:center;padding:20px;color:var(--tx3);">로딩 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-settings">
         <div style="display:flex;gap:0;border-bottom:2px solid var(--bd);margin-bottom:20px;">
           <div class="stab on" id="stab-general" onclick="switchSettingsTab('general')">⚙️ 기본 설정</div>
           <div class="stab" id="stab-zones" onclick="switchSettingsTab('zones')">📍 구역 관리</div>
@@ -1107,6 +1184,58 @@ const CLASS_DESC = {
   일반직:'일반직: 기본 보고서 작성만 가능.',
   특수직:'특수직: 특정 목적을 위한 커스텀 직급.',
 };
+
+// ── 경찰청 벌금표 ──────────────────────────────
+const FINE_TABLE = {
+  '도로교통법': [
+    { name:'신호위반', fine:5000000, jail:0 },
+    { name:'과속', fine:5000000, jail:0, desc:'일반도로 150km/h↑, 고속도로 250km/h↑' },
+    { name:'차로위반·정지선침범', fine:5000000, jail:0 },
+    { name:'중앙선침범', fine:5000000, jail:0 },
+    { name:'보도침범', fine:5000000, jail:0 },
+    { name:'소음공해', fine:5000000, jail:0 },
+    { name:'무면허운전', fine:20000000, jail:10 },
+    { name:'폭주', fine:50000000, jail:0, desc:'450km/h 초과' },
+    { name:'스턴트·드리프트', fine:5000000, jail:0 },
+    { name:'보복운전', fine:30000000, jail:15 },
+    { name:'공공기물파손', fine:15000000, jail:0 },
+    { name:'뺑소니', fine:50000000, jail:0 },
+    { name:'난폭운전', fine:50000000, jail:30, desc:'도로교통법 3건 이상' },
+    { name:'음주운전', fine:30000000, jail:10 },
+  ],
+  '경·중범죄': [
+    { name:'풍기문란·공연음란', fine:20000000, jail:0 },
+    { name:'상해', fine:10000000, jail:10 },
+    { name:'차량탈취', fine:50000000, jail:15 },
+    { name:'불법물건소지', fine:100000000, jail:20 },
+    { name:'불법물건사용(발포)', fine:100000000, jail:20 },
+    { name:'증거인멸', fine:100000000, jail:10 },
+    { name:'살인', fine:50000000, jail:15 },
+    { name:'불법물건언급', fine:0, jail:0, desc:'출석 요구 (수배 RP)', special:true },
+  ],
+  '공무원관련법': [
+    { name:'공무차량탈취시도', fine:50000000, jail:10 },
+    { name:'공무원명예훼손', fine:100000000, jail:0 },
+    { name:'공무차량손괴', fine:100000000, jail:10 },
+    { name:'공무원지시불이행', fine:100000000, jail:10 },
+    { name:'허위신고·장난전화', fine:50000000, jail:0 },
+    { name:'관유지무단침입', fine:50000000, jail:15 },
+    { name:'공무집행방해·공무원상해', fine:50000000, jail:15 },
+    { name:'공무차량탈취', fine:100000000, jail:20 },
+    { name:'공무원살인', fine:100000000, jail:30 },
+  ],
+};
+const BAIL_PER_MIN = 1000000; // 보석금: 구금 1분당 100만원
+// 공무 팩션 판별
+function isGovFaction() { return ME.factionType === 'police' || ME.factionType === 'ems'; }
+// 주간 키 (일요일 00시 기준)
+function getWeekKey(d) {
+  d = d || new Date();
+  const day = d.getDay(); // 0=일요일
+  const sunday = new Date(d); sunday.setDate(d.getDate() - day); sunday.setHours(0,0,0,0);
+  return sunday.toISOString().split('T')[0]; // 그 주 일요일 날짜
+}
+
 const TYPES = {
   police:{ p:'#2563EB', name:'TURN CITY PD', tag:'경찰' },
   ems:   { p:'#EF4444', name:'TURN CITY EMS', tag:'EMS' },
@@ -1165,12 +1294,21 @@ function getMenu() {
     { p:'warnings', icon:'⚠️', label:'내부경고',    badge:'wBadge', perm:'warn_give' },
     { sec:'재정' },
     { p:'account',  icon:'🏦', label:'팩션 금고',   perm:'account_view' },
+  );
+  // 공무 팩션 전용: 벌금계산기
+  if (isGovFaction()) {
+    m.push(
+      { sec:'공무' },
+      { p:'fines', icon:'🚨', label:'벌금 계산기' },
+    );
+  }
+  m.push(
     { sec:'관리자' },
     { p:'settings', icon:'⚙️', label:'시스템 설정', perm:'settings' },
   );
   return m;
 }
-const PT = { dashboard:'대시보드', notice:'공지사항', attendance:'출근부', rp:'RP 보고서', trade:'거래 보고서', members:'팩션원 관리', ranks:'직급 관리', warnings:'내부경고', account:'팩션 금고', settings:'시스템 설정' };
+const PT = { dashboard:'대시보드', notice:'공지사항', attendance:'출근부', rp:'RP 보고서', trade:'거래 보고서', members:'팩션원 관리', ranks:'직급 관리', warnings:'내부경고', account:'팩션 금고', fines:'벌금 계산기', settings:'시스템 설정' };
 
 function renderNav() {
   const nav = document.getElementById('sbNav');
@@ -1606,6 +1744,14 @@ function setupRealtimeListeners() {
     renderItemList(); updateTrItemSelect();
   }, err => console.warn('[물품 리스너]', err.code)));
 
+  // 11-1. 벌금 (공무 팩션만)
+  if (isGovFaction()) {
+    _unsubscribers.push(onSnapshot(query(collection(db,'factions',fid,'fines'), orderBy('createdAt','desc'), limit(200)), (snap) => {
+      window._finesCache = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      if(document.getElementById('page-fines')?.classList.contains('active')) renderFineStats(window._finesCache);
+    }, err => console.warn('[벌금 리스너]', err.code)));
+  }
+
   // 11. 활동로그
   _unsubscribers.push(onSnapshot(query(collection(db,'factions',fid,'activity_logs'), orderBy('createdAt','desc'), limit(30)), (snap) => {
     window._logCache = snap.docs.map(d => ({ id:d.id, ...d.data() }));
@@ -1767,7 +1913,7 @@ function renderDashboard(membersSnap, rpData, logData) {
     if (!logData.length) { actEl.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3);">활동 내역이 없습니다.</div>'; }
     else {
       actEl.innerHTML='';
-      const dotMap={faction_created:'s',join_apply:'',member_approved:'s',rp_submitted:'',rp_approved:'s',trade_submitted:'',warning_given:'d',vault_transaction:'s'};
+      const dotMap={faction_created:'s',join_apply:'',member_approved:'s',rp_submitted:'',rp_approved:'s',trade_submitted:'',trade_approved:'s',warning_given:'d',warn_given:'d',notice_created:'',game_checkin:'s',game_checkout:'',vault_transaction:'s',founder_transferred:'s'};
       logData.slice(0,8).forEach(l => {
         const div=document.createElement('div'); div.className='act';
         div.innerHTML=`<div class="adot ${dotMap[l.type]||''}"></div><div class="at">${esc(l.message)||'활동 기록'}</div><div class="atm">${timeAgo(l.createdAt?.toDate?.()?.getTime()||Date.now())}</div>`;
@@ -1777,6 +1923,218 @@ function renderDashboard(membersSnap, rpData, logData) {
   }
 }
 
+
+
+// ══════════════════════════════════════════
+// 벌금 계산기
+// ══════════════════════════════════════════
+let FINE_SELECTED = {}; // { "분류|항목명": {name, fine, jail} }
+
+function renderFineCategories() {
+  const el = document.getElementById('fineCategories');
+  if(!el) return;
+  el.innerHTML = '';
+  Object.entries(FINE_TABLE).forEach(([cat, items]) => {
+    const sec = document.createElement('div');
+    sec.innerHTML = `<div style="font-size:13px;font-weight:700;color:var(--tx2);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--bd);">${cat}</div>`;
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:flex;flex-direction:column;gap:4px;';
+    items.forEach(item => {
+      const key = `${cat}|${item.name}`;
+      const div = document.createElement('div');
+      div.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r);cursor:pointer;transition:.15s;border:1px solid transparent;';
+      div.onclick = () => toggleFine(cat, item);
+      div.id = `fine-row-${btoa(unescape(encodeURIComponent(key))).replace(/[^a-zA-Z0-9]/g,'')}`;
+      const jailTxt = item.jail > 0 ? ` <span style="color:#EF4444;">+구금 ${item.jail}분</span>` : '';
+      const descTxt = item.desc ? `<div style="font-size:10px;color:var(--tx3);">${esc(item.desc)}</div>` : '';
+      div.innerHTML = `
+        <div class="fine-check" style="width:18px;height:18px;border:2px solid var(--bd);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:500;">${esc(item.name)}</div>
+          ${descTxt}
+        </div>
+        <div style="font-size:12px;text-align:right;white-space:nowrap;">
+          <span style="font-weight:600;">${item.special ? '수배 RP' : '₩'+item.fine.toLocaleString()}</span>${jailTxt}
+        </div>`;
+      grid.appendChild(div);
+    });
+    sec.appendChild(grid);
+    el.appendChild(sec);
+  });
+  updateFineRows();
+}
+
+function toggleFine(cat, item) {
+  const key = `${cat}|${item.name}`;
+  if(FINE_SELECTED[key]) delete FINE_SELECTED[key];
+  else FINE_SELECTED[key] = { ...item, cat };
+  updateFineRows();
+  recalcFines();
+}
+
+function updateFineRows() {
+  Object.entries(FINE_TABLE).forEach(([cat, items]) => {
+    items.forEach(item => {
+      const key = `${cat}|${item.name}`;
+      const id = `fine-row-${btoa(unescape(encodeURIComponent(key))).replace(/[^a-zA-Z0-9]/g,'')}`;
+      const row = document.getElementById(id);
+      if(!row) return;
+      const on = !!FINE_SELECTED[key];
+      const check = row.querySelector('.fine-check');
+      if(on) {
+        row.style.background = 'var(--pbg)'; row.style.borderColor = 'var(--pbd)';
+        if(check){ check.style.background='var(--p)'; check.style.borderColor='var(--p)'; check.textContent='✓'; check.style.color='#fff'; }
+      } else {
+        row.style.background = ''; row.style.borderColor = 'transparent';
+        if(check){ check.style.background=''; check.style.borderColor='var(--bd)'; check.textContent=''; }
+      }
+    });
+  });
+}
+
+function recalcFines() {
+  const sel = Object.values(FINE_SELECTED);
+  let totalFine = sel.reduce((s,i)=>s+(i.fine||0), 0);
+  let totalJail = sel.reduce((s,i)=>s+(i.jail||0), 0);
+
+  // 뉴비 감면
+  const newbie = document.getElementById('fineNewbie')?.checked;
+  if(newbie) {
+    const rate = parseInt(document.getElementById('fineNewbieType')?.value || '0');
+    totalFine = Math.floor(totalFine * rate / 100);
+    totalJail = Math.floor(totalJail * rate / 100);
+  }
+
+  // 선택 내역 표시
+  const selEl = document.getElementById('fineSelected');
+  if(selEl) {
+    if(sel.length === 0) {
+      selEl.innerHTML = '<div style="text-align:center;color:var(--tx3);font-size:12px;padding:12px;">선택된 항목이 없습니다.</div>';
+    } else {
+      selEl.innerHTML = sel.map(i => `
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;">
+          <span>${esc(i.name)}</span>
+          <span style="color:var(--tx3);">${i.special?'수배':'₩'+i.fine.toLocaleString()}${i.jail>0?` / ${i.jail}분`:''}</span>
+        </div>`).join('');
+    }
+  }
+
+  document.getElementById('fineTotalFine').textContent = '₩' + totalFine.toLocaleString();
+  document.getElementById('fineTotalJail').textContent = totalJail + '분';
+  document.getElementById('fineBail').textContent = '₩' + (totalJail * BAIL_PER_MIN).toLocaleString();
+}
+
+async function submitFine() {
+  const sel = Object.values(FINE_SELECTED);
+  if(sel.length === 0) { toast('위반 항목을 선택해주세요.','error'); return; }
+  const targetId = document.getElementById('fineTargetId')?.value.trim();
+  if(!targetId) { toast('대상 고유번호를 입력해주세요.','error'); return; }
+  if(!/^[0-9]+$/.test(targetId)) { toast('고유번호는 숫자만 입력 가능합니다.','error'); return; }
+
+  let totalFine = sel.reduce((s,i)=>s+(i.fine||0), 0);
+  let totalJail = sel.reduce((s,i)=>s+(i.jail||0), 0);
+  const newbie = document.getElementById('fineNewbie')?.checked;
+  let newbieRate = 0;
+  if(newbie) {
+    newbieRate = parseInt(document.getElementById('fineNewbieType')?.value || '0');
+    totalFine = Math.floor(totalFine * newbieRate / 100);
+    totalJail = Math.floor(totalJail * newbieRate / 100);
+  }
+
+  if(!confirm(`고유번호 ${targetId}님에게\n벌금 ₩${totalFine.toLocaleString()} / 구금 ${totalJail}분\n부과하시겠습니까?`)) return;
+
+  showLoading('벌금 부과 중...');
+  try {
+    // 1. 게임에 벌금 부과 (서버 API)
+    const token = await auth.currentUser.getIdToken();
+    const res = await fetch(API_URL + '/api/intranet/fine', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+token },
+      body: JSON.stringify({
+        factionId: ME.factionId,
+        targetUserId: targetId,
+        totalFine, totalJail,
+        items: sel.map(i=>({ name:i.name, fine:i.fine, jail:i.jail })),
+      }),
+    });
+    const data = await res.json();
+
+    // 2. Firestore에 실적 기록 (게임 전송 성공 여부와 무관하게 기록)
+    await addDoc(collection(db,'factions',ME.factionId,'fines'),{
+      issuerId: ME.uid, issuerName: ME.name,
+      targetUserId: targetId,
+      items: sel.map(i=>({ name:i.name, fine:i.fine, jail:i.jail })),
+      totalFine, totalJail,
+      isNewbie: newbie, newbieRate,
+      status: data.ok ? 'sent' : 'failed',
+      weekKey: getWeekKey(),
+      createdAt: serverTimestamp(),
+    });
+
+    // 활동 로그
+    await addDoc(collection(db,'factions',ME.factionId,'activity_logs'),{
+      type:'fine_issued',
+      message:`${ME.name}님이 ${targetId}님에게 벌금 ₩${totalFine.toLocaleString()}을 부과했습니다.`,
+      userId:ME.uid, createdAt:serverTimestamp(),
+    });
+
+    hideLoading();
+    if(data.ok) {
+      toast(`벌금 부과 완료! (₩${totalFine.toLocaleString()} / 구금 ${totalJail}분)`,'success');
+    } else {
+      toast(`실적은 기록됐으나 게임 전송 실패: ${data.reason||'대상 오프라인'}`,'info');
+    }
+    // 초기화
+    FINE_SELECTED = {}; updateFineRows(); recalcFines();
+    document.getElementById('fineTargetId').value = '';
+    document.getElementById('fineNewbie').checked = false;
+  } catch(err) {
+    hideLoading();
+    toast('부과 실패: '+err.message,'error');
+  }
+}
+
+// 주간 통계 렌더
+function renderFineStats(finesData) {
+  const tbody = document.getElementById('fineStatsBody');
+  if(!tbody) return;
+  const weekKey = getWeekKey();
+  // 이번 주 부과분만
+  const thisWeek = finesData.filter(f => f.weekKey === weekKey);
+
+  // 주간 범위 표시
+  const range = document.getElementById('fineWeekRange');
+  if(range) {
+    const sun = new Date(weekKey);
+    const sat = new Date(sun); sat.setDate(sun.getDate()+6);
+    const fmt = d => `${d.getMonth()+1}/${d.getDate()}`;
+    range.textContent = `${fmt(sun)} ~ ${fmt(sat)}`;
+  }
+
+  // 인원별 집계
+  const byIssuer = {};
+  thisWeek.forEach(f => {
+    if(!byIssuer[f.issuerId]) byIssuer[f.issuerId] = { name:f.issuerName, count:0, fine:0, jail:0 };
+    byIssuer[f.issuerId].count++;
+    byIssuer[f.issuerId].fine += f.totalFine||0;
+    byIssuer[f.issuerId].jail += f.totalJail||0;
+  });
+  const ranked = Object.values(byIssuer).sort((a,b)=>b.fine-a.fine);
+
+  if(ranked.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--tx3);">이번 주 부과 내역이 없습니다.</td></tr>';
+    return;
+  }
+  const medals = ['🥇','🥈','🥉'];
+  tbody.innerHTML = ranked.map((r,i) => `
+    <tr style="border-bottom:1px solid var(--bd);">
+      <td style="padding:8px;">${medals[i]||(i+1)}</td>
+      <td style="padding:8px;font-weight:600;">${esc(r.name)}</td>
+      <td style="padding:8px;text-align:right;">${r.count}건</td>
+      <td style="padding:8px;text-align:right;color:var(--p);font-weight:600;">₩${r.fine.toLocaleString()}</td>
+      <td style="padding:8px;text-align:right;color:#EF4444;">${r.jail}분</td>
+    </tr>`).join('');
+}
 
 // ── 대시보드 최근 공지 ────────────────────────
 function renderDashNotices(notices) {
@@ -2079,6 +2437,9 @@ async function approveRp(btn, id, authorId, score) {
     if(rpData.authorId && realScore){
       await updateDoc(doc(db,'factions',ME.factionId,'members',rpData.authorId),{rp_score:fsIncrement(realScore)});
     }
+    await addDoc(collection(db,'factions',ME.factionId,'activity_logs'),{
+      type:'rp_approved', message:`RP 보고서가 승인되었습니다. (+${realScore}점)`, userId:ME.uid, createdAt:serverTimestamp(),
+    });
     toast(`RP 보고서 승인! (+${realScore}점 반영)`,'success');
   } catch(err){ toast('승인 실패: '+err.message,'error'); }
 }
@@ -2222,6 +2583,9 @@ async function submitNt() {
   try {
     await addDoc(collection(db,'factions',ME.factionId,'notices'),{
       type:tm[type]||'notice',title:t,content:cont||'',authorId:ME.uid,authorName:`${ME.rankName} ${ME.name}`,createdAt:serverTimestamp(),
+    });
+    await addDoc(collection(db,'factions',ME.factionId,'activity_logs'),{
+      type:'notice_created', message:`${ME.name}님이 공지를 작성했습니다: "${t}"`, userId:ME.uid, createdAt:serverTimestamp(),
     });
     cm('moNt'); toast('공지가 등록되었습니다!','success');
     notifyWebhook('notice', { title:t, content:cont, author:ME.name });
@@ -2755,6 +3119,12 @@ function navTo(p, el) {
   document.querySelectorAll('.ni[data-p]').forEach(x=>x.classList.remove('on'));
   (el||document.querySelector(`[data-p="${p}"]`))?.classList.add('on');
   document.getElementById('tbt').textContent=PT[p]||p;
+  // 벌금계산기 진입 시 항목 렌더
+  if(p === 'fines') {
+    renderFineCategories();
+    recalcFines();
+    if(window._finesCache) renderFineStats(window._finesCache);
+  }
 }
 function mobNav(p, el) {
   navTo(p);
@@ -3158,6 +3528,9 @@ async function submitWarn() {
       givenBy: ME.name, givenById: ME.uid, createdAt: serverTimestamp(),
     });
     await updateDoc(doc(db,'factions',ME.factionId,'members',targetId),{ warn_count: fsIncrement(1) });
+    await addDoc(collection(db,'factions',ME.factionId,'activity_logs'),{
+      type:'warn_given', message:`${target?.username||'-'}님에게 내부경고가 부여되었습니다.`, userId:ME.uid, createdAt:serverTimestamp(),
+    });
     cm('moWarn');
     toast('경고 부여 완료.','info');
     notifyWebhook('warn', { target: target?.username||'-', level, reason });
@@ -3361,6 +3734,7 @@ window.om=om; window.cm=cm; window.toast=toast;
 window.showLoading=showLoading; window.hideLoading=hideLoading;
 window.openOnlineList=openOnlineList; window.renderOnlineList=renderOnlineList;
 window.renderDashNotices=renderDashNotices; window.notifyWebhook=notifyWebhook;
+window.toggleFine=toggleFine; window.recalcFines=recalcFines; window.submitFine=submitFine; window.renderFineCategories=renderFineCategories; window.renderFineStats=renderFineStats;
 window.saveCz=saveCz; window.loadMyTheme=loadMyTheme;
 window.saveProfile=saveProfile; window.openEditProfile=openEditProfile;
 window.saveFactionInfo=saveFactionInfo; window.saveSettings=saveSettings; window.loadSettingsToggles=loadSettingsToggles;
