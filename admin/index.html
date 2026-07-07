@@ -529,6 +529,11 @@ let MOCK_CODES    = [];
 let MOCK_LOGS     = [];
 
 // ── API 호출 헬퍼 ─────────────────────────────────────
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
 async function apiFetch(path, options = {}) {
   const sessionToken = localStorage.getItem('tc_admin_token') || '';
   try {
@@ -575,15 +580,25 @@ async function loadCodes() {
 async function loadLogs() {
   const data = await apiFetch('/api/admin/logs');
   if (data?.ok) {
-    MOCK_LOGS = (data.logs || []).map(l => ({
-      dot: l.type === 'faction_created' ? 's' :
-           l.type === 'code_issued'     ? 'i' :
-           l.type === 'member_kicked'   ? 'd' : 'p',
-      text: l.message,
-      time: timeAgo(l.createdAt?._seconds ? l.createdAt._seconds * 1000 : Date.now()),
-    }));
+    MOCK_LOGS = (data.logs || []).map(l => {
+      // createdAt 형식 유연 처리 (_seconds 또는 seconds)
+      const secs = l.createdAt?._seconds || l.createdAt?.seconds || 0;
+      const ts = secs ? secs * 1000 : Date.now();
+      const dotMap = {
+        faction_created:'s', code_issued:'i', member_kicked:'d', member_approved:'s',
+        notice_created:'p', rp_approved:'s', fine_issued:'d', warn_given:'d',
+        game_checkin:'s', founder_transferred:'p',
+      };
+      const facLabel = l.factionName ? `[${l.factionName}] ` : '';
+      return {
+        dot: dotMap[l.type] || 'p',
+        text: facLabel + (l.message || '-'),
+        time: timeAgo(ts),
+      };
+    });
   } else {
     MOCK_LOGS = [];
+    if(data && data.reason) console.warn('[로그 조회]', data.reason);
   }
 }
 
