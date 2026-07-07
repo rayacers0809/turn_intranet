@@ -1576,6 +1576,11 @@ async function submitJoinApply() {
 // 인트라넷 로드
 // ══════════════════════════════════════════
 async function loadIntranet(factionData, memberData, userData) {
+  // 비활성화된 팩션이면 접속 차단
+  if (factionData && factionData.active === false) {
+    showMaintenanceScreen('이 팩션의 인트라넷이 관리자에 의해 비활성화되었습니다.\n자세한 사항은 관리자에게 문의하세요.');
+    return;
+  }
   showLoading('인트라넷 불러오는 중...');
   ME = {
     uid:         auth.currentUser?.uid || '',
