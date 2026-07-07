@@ -453,7 +453,7 @@ input,textarea,select{font-family:var(--font);}
             <div class="card">
               <div class="ct" style="margin-bottom:16px;"><span class="ti">🔧</span>시스템 설정</div>
               <div class="sr"><div class="si"><div class="sl2">신규 팩션 등록 허용</div><div class="sd">OFF 시 코드 발급 및 인트라넷 생성 차단</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
-              <div class="sr"><div class="si"><div class="sl2">점검 모드</div><div class="sd">ON 시 전체 인트라넷 접속 차단, 점검 화면 표시</div></div><div class="toggle" id="maintenanceToggle" onclick="toggleMaintenance(this)"></div></div>
+              <div class="sr"><div class="si"><div class="sl2">점검 모드</div><div class="sd">ON 시 전체 인트라넷 접속 차단, 점검 화면 표시</div></div><div class="toggle" id="maintenanceToggle" onclick="toggleMaintenance()"></div></div>
               <div class="sr"><div class="si"><div class="sl2">관리자 로그 보존 기간</div></div>
                 <select class="inp" style="width:120px;padding:7px 10px;">
                   <option>30일</option><option>60일</option><option>90일</option><option>무제한</option>
@@ -1153,12 +1153,6 @@ function togglePw(id) {
 // ══════════════════════════════════════════════
 // 기타
 // ══════════════════════════════════════════════
-function toggleMaintenance(el) {
-  el.classList.toggle('on');
-  const on = el.classList.contains('on');
-  toast(on ? '⚠️ 점검 모드 활성화됨 - 전체 인트라넷 접속 차단' : '점검 모드 해제됨', on ? 'warn' : 'success');
-}
-
 async function refreshAll() {
   toast('새로고침 중...', 'info');
   await Promise.all([loadFactions(), loadCodes(), loadLogs()]);
@@ -1228,7 +1222,7 @@ window.cm                = cm;
 window.issueCode         = issueCode;
 window.cancelCode        = cancelCode;
 window.filterFactions    = filterFactions;
-window.toggleMaintenance = toggleMaintenance;
+
 window.toast             = toast;
 window.updateCountBadges = updateCountBadges;
 window.renderOverview    = renderOverview;
