@@ -968,32 +968,14 @@ input,textarea,select{font-family:var(--font);}
       </div>
 
       <!-- 금고 -->
-      <div class="page" id="page-account">
-        <div class="vault"><div class="vl">팩션 금고 잔액</div><div class="va" id="vaultBalance">$0</div><div class="vs" id="vaultUpdated">-</div></div>
-        <div class="g2">
-          <div class="card"><div class="ct" style="margin-bottom:14px;"><span class="ti">💸</span>거래 내역</div><div id="txList"><div style="text-align:center;padding:20px;color:var(--tx3);">거래 내역이 없습니다.</div></div></div>
-          <div class="card">
-            <div class="ct" style="margin-bottom:14px;"><span class="ti">📊</span>이번 달 통계</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-              <div class="sc cs" style="padding:14px;"><div class="sl">총 수입</div><div class="sv" style="font-size:20px;" id="vaultIncome">-</div></div>
-              <div class="sc cd" style="padding:14px;"><div class="sl">총 지출</div><div class="sv" style="font-size:20px;" id="vaultExpense">-</div></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 설정 -->
       <!-- ── 벌금 계산기 (공무 전용) ── -->
 <div class="page" id="page-fines">
   <div class="g2" style="grid-template-columns:1.4fr 1fr;align-items:start;">
-    <!-- 왼쪽: 계산기 -->
     <div class="card">
       <div class="ch"><div class="ct"><span class="ti">🚨</span>벌금 계산기</div></div>
       <div style="font-size:12px;color:var(--tx3);margin-bottom:12px;">위반 항목을 선택하면 자동으로 합산됩니다.</div>
       <div id="fineCategories" style="display:flex;flex-direction:column;gap:14px;max-height:480px;overflow-y:auto;padding-right:4px;"></div>
     </div>
-
-    <!-- 오른쪽: 합계 + 전송 -->
     <div style="display:flex;flex-direction:column;gap:16px;position:sticky;top:0;">
       <div class="card">
         <div class="ch"><div class="ct"><span class="ti">🧾</span>부과 내역</div></div>
@@ -1001,28 +983,18 @@ input,textarea,select{font-family:var(--font);}
           <div style="text-align:center;color:var(--tx3);font-size:12px;padding:12px;">선택된 항목이 없습니다.</div>
         </div>
         <div style="border-top:1px solid var(--bd);padding-top:12px;display:flex;flex-direction:column;gap:8px;">
-          <div style="display:flex;justify-content:space-between;font-size:14px;">
-            <span style="color:var(--tx2);">총 벌금</span>
-            <span style="font-weight:700;color:var(--p);" id="fineTotalFine">₩0</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:14px;">
-            <span style="color:var(--tx2);">총 구금</span>
-            <span style="font-weight:700;color:#EF4444;" id="fineTotalJail">0분</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--tx3);">
-            <span>보석금 환산</span>
-            <span id="fineBail">₩0</span>
-          </div>
+          <div style="display:flex;justify-content:space-between;font-size:14px;"><span style="color:var(--tx2);">총 벌금</span><span style="font-weight:700;color:var(--p);" id="fineTotalFine">₩0</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:14px;"><span style="color:var(--tx2);">총 구금</span><span style="font-weight:700;color:#EF4444;" id="fineTotalJail">0분</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--tx3);"><span>보석금 환산</span><span id="fineBail">₩0</span></div>
         </div>
       </div>
-
       <div class="card">
         <div class="ch"><div class="ct"><span class="ti">📤</span>부과 대상</div></div>
         <label class="fl">대상 고유번호 (userid)</label>
         <input class="inp" id="fineTargetId" type="text" placeholder="예: 1234" maxlength="10">
         <label style="display:flex;align-items:center;gap:8px;margin:12px 0;font-size:13px;cursor:pointer;">
           <input type="checkbox" id="fineNewbie" onchange="recalcFines()">
-          <span>뉴비 감면 적용</span>
+          <span>뉴비 감면</span>
           <select class="inp" id="fineNewbieType" style="width:auto;padding:4px 8px;font-size:12px;" onchange="recalcFines()">
             <option value="0">1회 (전액 면제)</option>
             <option value="50">2회 (50% 감면)</option>
@@ -1033,28 +1005,13 @@ input,textarea,select{font-family:var(--font);}
       </div>
     </div>
   </div>
-
-  <!-- 주간 통계 -->
   <div class="card" style="margin-top:16px;">
-    <div class="ch">
-      <div class="ct"><span class="ti">📊</span>이번 주 부과 실적</div>
-      <span style="font-size:12px;color:var(--tx3);" id="fineWeekRange"></span>
-    </div>
+    <div class="ch"><div class="ct"><span class="ti">📊</span>이번 주 부과 실적</div><span style="font-size:12px;color:var(--tx3);" id="fineWeekRange"></span></div>
     <div style="font-size:11px;color:var(--tx3);margin-bottom:10px;">매주 일요일 00시에 초기화됩니다.</div>
     <div style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:13px;">
-        <thead>
-          <tr style="border-bottom:2px solid var(--bd);">
-            <th style="text-align:left;padding:8px;">순위</th>
-            <th style="text-align:left;padding:8px;">공무원</th>
-            <th style="text-align:right;padding:8px;">부과 건수</th>
-            <th style="text-align:right;padding:8px;">총 벌금</th>
-            <th style="text-align:right;padding:8px;">총 구금</th>
-          </tr>
-        </thead>
-        <tbody id="fineStatsBody">
-          <tr><td colspan="5" style="text-align:center;padding:20px;color:var(--tx3);">로딩 중...</td></tr>
-        </tbody>
+        <thead><tr style="border-bottom:2px solid var(--bd);"><th style="text-align:left;padding:8px;">순위</th><th style="text-align:left;padding:8px;">공무원</th><th style="text-align:right;padding:8px;">부과 건수</th><th style="text-align:right;padding:8px;">총 벌금</th><th style="text-align:right;padding:8px;">총 구금</th></tr></thead>
+        <tbody id="fineStatsBody"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--tx3);">로딩 중...</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -1074,12 +1031,18 @@ input,textarea,select{font-family:var(--font);}
               <div class="card">
                 <div class="ct" style="margin-bottom:14px;"><span class="ti">🏙️</span>팩션 기본 정보</div>
                 <div class="sr"><div class="si"><div class="sl2">팩션명</div></div><input class="inp" id="settingFN" maxlength="20" style="width:160px;padding:7px 10px;"></div>
-                <div class="sr"><div class="si"><div class="sl2">팩션 구분</div></div><select class="inp" id="settingFT" style="width:130px;padding:7px 10px;"><option>경찰 / 공무원</option><option>EMS / 소방</option><option>기업 / 회사</option><option>조직 / 마피아</option><option>갱단 / 범죄조직</option><option>기타</option></select></div>
+                <div class="sr"><div class="si"><div class="sl2">팩션 구분</div><div class="sd">관리자가 지정하며 변경할 수 없습니다.</div></div><div style="display:flex;align-items:center;gap:6px;"><span id="settingFTDisplay" style="font-size:13px;font-weight:600;color:var(--tx2);padding:7px 12px;background:var(--bg3);border-radius:var(--r);">-</span></div></div>
+                <input type="hidden" id="settingFT">
                 <div class="sr"><div class="si"><div class="sl2">가입 코드</div><div class="sd">팩션원 가입 시 사용</div></div><div style="display:flex;gap:6px;align-items:center;"><span style="font-family:var(--mono);font-size:13px;color:var(--p);font-weight:700;" id="joinCode">-</span><button class="btn g sm" onclick="regenCode()">재발급</button></div></div>
                 <div style="margin-top:12px;"><button class="btn p" onclick="saveFactionInfo()">💾 팩션 정보 저장</button></div>
               </div>
               <div class="card" style="margin-top:16px;">
                 <div class="ct" style="margin-bottom:14px;"><span class="ti">🔧</span>기능 설정</div>
+                <div style="font-size:11px;color:var(--tx3);margin-bottom:10px;">사용할 기능을 켜고 끌 수 있습니다. 끄면 메뉴에서 사라집니다.</div>
+                <div class="sr"><div class="si"><div class="sl2">📢 공지사항</div><div class="sd">공지 작성/열람 기능</div></div><div class="toggle on" id="togNoticeEnabled" onclick="this.classList.toggle('on')"></div></div>
+                <div class="sr"><div class="si"><div class="sl2">📅 출근부</div><div class="sd">출퇴근 기록 기능</div></div><div class="toggle on" id="togAttendanceEnabled" onclick="this.classList.toggle('on')"></div></div>
+                <div class="sr"><div class="si"><div class="sl2">🏅 직급 관리</div><div class="sd">직급 생성/부여 기능</div></div><div class="toggle on" id="togRankEnabled" onclick="this.classList.toggle('on')"></div></div>
+                <div class="sr"><div class="si"><div class="sl2">⚠️ 내부경고</div><div class="sd">경고 부여 기능</div></div><div class="toggle on" id="togWarnEnabled" onclick="this.classList.toggle('on')"></div></div>
                 <div class="sr"><div class="si"><div class="sl2">RP 보고서 활성화</div><div class="sd">공무원/조직 팩션 RP 보고서 사용</div></div><div class="toggle on" id="togRpEnabled" onclick="this.classList.toggle('on')"></div></div>
                 <div class="sr"><div class="si"><div class="sl2">RP 보고서 승인 필요</div><div class="sd">승인 후 점수 반영</div></div><div class="toggle on" id="togRpApproval" onclick="this.classList.toggle('on')"></div></div>
                 <div class="sr"><div class="si"><div class="sl2">거래 보고서 활성화</div><div class="sd">기업/조직 팩션 거래 보고서 사용</div></div><div class="toggle on" id="togTradeEnabled" onclick="this.classList.toggle('on')"></div></div>
@@ -1288,39 +1251,38 @@ function hasTrade(){ const t=ME.factionType||''; return isCorp() || isCrime() ||
 // ══════════════════════════════════════════
 let FACTION_SETTINGS = {};
 function getMenu() {
-  const m = [
-    { sec:'메인' },
-    { p:'dashboard',  icon:'🏠', label:'대시보드' },
-    { p:'notice',     icon:'📢', label:'공지사항', badge:'ntBadge' },
-    { p:'attendance', icon:'📅', label:'출근부' },
-    { sec:'보고서' },
-  ];
-  const rpOn    = FACTION_SETTINGS.rpEnabled    !== false;
-  const tradeOn = FACTION_SETTINGS.tradeEnabled !== false;
-  if (hasRP()    && rpOn)    m.push({ p:'rp',    icon:'📋', label:'RP 보고서',   badge:'rpBadge' });
-  if (hasTrade() && tradeOn) m.push({ p:'trade', icon:'💰', label:'거래 보고서' });
-  m.push(
-    { sec:'팩션 관리' },
-    { p:'members',  icon:'👥', label:'팩션원 관리', perm:'member_manage' },
-    { p:'ranks',    icon:'🏅', label:'직급 관리',   perm:'rank_manage' },
-    { p:'warnings', icon:'⚠️', label:'내부경고',    badge:'wBadge', perm:'warn_give' },
-    { sec:'재정' },
-    { p:'account',  icon:'🏦', label:'팩션 금고',   perm:'account_view' },
-  );
-  // 공무 팩션 전용: 벌금계산기
-  if (isGovFaction()) {
-    m.push(
-      { sec:'공무' },
-      { p:'fines', icon:'🚨', label:'벌금 계산기' },
-    );
+  const S = FACTION_SETTINGS || {};
+  // 기능별 활성화 (기본 켜짐, false로 명시해야 꺼짐)
+  const on = (key) => S[key] !== false;
+
+  const m = [{ sec:'메인' }, { p:'dashboard', icon:'🏠', label:'대시보드' }];
+  if (on('noticeEnabled'))     m.push({ p:'notice', icon:'📢', label:'공지사항', badge:'ntBadge' });
+  if (on('attendanceEnabled')) m.push({ p:'attendance', icon:'📅', label:'출근부' });
+
+  // 보고서 섹션 (하나라도 켜져 있을 때만)
+  const rpOn    = on('rpEnabled');
+  const tradeOn = on('tradeEnabled');
+  if ((hasRP() && rpOn) || (hasTrade() && tradeOn)) {
+    m.push({ sec:'보고서' });
+    if (hasRP()    && rpOn)    m.push({ p:'rp',    icon:'📋', label:'RP 보고서',   badge:'rpBadge' });
+    if (hasTrade() && tradeOn) m.push({ p:'trade', icon:'💰', label:'거래 보고서' });
   }
-  m.push(
-    { sec:'관리자' },
-    { p:'settings', icon:'⚙️', label:'시스템 설정', perm:'settings' },
-  );
+
+  // 팩션 관리
+  m.push({ sec:'팩션 관리' });
+  m.push({ p:'members', icon:'👥', label:'팩션원 관리', perm:'member_manage' });
+  if (on('rankEnabled'))    m.push({ p:'ranks',    icon:'🏅', label:'직급 관리', perm:'rank_manage' });
+  if (on('warnEnabled'))    m.push({ p:'warnings', icon:'⚠️', label:'내부경고', badge:'wBadge', perm:'warn_give' });
+
+  // 공무 팩션 전용: 벌금계산기 (factionType으로만 판별, 토글 불가 = 악용 방지)
+  if (isGovFaction()) {
+    m.push({ sec:'공무' }, { p:'fines', icon:'🚨', label:'벌금 계산기' });
+  }
+
+  m.push({ sec:'관리자' }, { p:'settings', icon:'⚙️', label:'시스템 설정', perm:'settings' });
   return m;
 }
-const PT = { dashboard:'대시보드', notice:'공지사항', attendance:'출근부', rp:'RP 보고서', trade:'거래 보고서', members:'팩션원 관리', ranks:'직급 관리', warnings:'내부경고', account:'팩션 금고', fines:'벌금 계산기', settings:'시스템 설정' };
+const PT = { dashboard:'대시보드', notice:'공지사항', attendance:'출근부', rp:'RP 보고서', trade:'거래 보고서', members:'팩션원 관리', ranks:'직급 관리', warnings:'내부경고', fines:'벌금 계산기', settings:'시스템 설정' };
 
 function renderNav() {
   const nav = document.getElementById('sbNav');
@@ -1500,6 +1462,18 @@ function renderJoinPending() {
 let codeCheckTimer = null;
 async function checkJoinCode(val) {
   const btn = document.getElementById('joinNextBtn');
+  // 이미 팩션 소속이면 가입 차단
+  if(auth.currentUser) {
+    try {
+      const uDoc = await getDoc(doc(db,'users',auth.currentUser.uid));
+      if(uDoc.exists() && uDoc.data().factionId) {
+        const found = document.getElementById('factionFound');
+        if(found) { found.className='faction-found err'; found.textContent='⚠️ 이미 소속된 팩션이 있습니다. 한 계정은 하나의 팩션만 가입 가능합니다.'; }
+        if(btn) btn.disabled = true;
+        return;
+      }
+    } catch(e){}
+  }
   const found = document.getElementById('factionFound');
   if (!btn || !found) return;
   found.className = 'faction-found';
@@ -1604,6 +1578,8 @@ async function loadIntranet(factionData, memberData, userData) {
   // 팩션 설정 구분 select
   const sft = document.getElementById('settingFT');
   if(sft) sft.value = factionData.factionType || '기타';
+    const sftD = document.getElementById('settingFTDisplay');
+    if(sftD) sftD.textContent = factionData.factionType || '기타';
 
   // 웹훅 로드
   const wh = factionData.webhooks || {};
@@ -1727,11 +1703,6 @@ function setupRealtimeListeners() {
     window._pendingTr = data.filter(r=>r.status==='pending').length;
     renderTr(data);
   }, err => console.warn('[거래 리스너]', err.code)));
-
-  // 6. 거래내역
-  _unsubscribers.push(onSnapshot(query(collection(db,'factions',fid,'transactions'), orderBy('createdAt','desc'), limit(50)), (snap) => {
-    renderTx(snap.docs.map(d => ({ id:d.id, ...d.data() })));
-  }, err => console.warn('[거래내역 리스너]', err.code)));
 
   // 7. 경고
   _unsubscribers.push(onSnapshot(query(collection(db,'factions',fid,'warnings'), orderBy('createdAt','desc'), limit(50)), (snap) => {
@@ -2332,6 +2303,7 @@ function renderWarnings(warnData) {
 }
 
 function renderTx(txData) {
+  if(!document.getElementById('vaultExpense')) return; // 금고 페이지 없으면 skip
   const el=document.getElementById('txList'); if(!el) return; el.innerHTML='';
   if(!txData.length){ el.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3);">거래 내역이 없습니다.</div>'; return; }
   let income=0, expense=0;
@@ -3154,7 +3126,7 @@ function syncMobUI(){
   const mobAva=document.getElementById('mobAva');
   if(mobAva){ if(ME.avatar) mobAva.innerHTML=`<img src="${ME.avatar}">`; else mobAva.textContent=ME.name?.[0]||'?'; }
   const nav=document.getElementById('mobDrawerNav'); if(!nav) return; nav.innerHTML='';
-  [{p:'attendance',icon:'📅',label:'출근부'},{p:'trade',icon:'💰',label:'거래 보고서'},{p:'ranks',icon:'🏅',label:'직급 관리',perm:'rank_manage'},{p:'warnings',icon:'⚠️',label:'내부경고',perm:'warn_give'},{p:'account',icon:'🏦',label:'팩션 금고',perm:'account_view'}].forEach(item=>{
+  [{p:'attendance',icon:'📅',label:'출근부'},{p:'trade',icon:'💰',label:'거래 보고서'},{p:'ranks',icon:'🏅',label:'직급 관리',perm:'rank_manage'},{p:'warnings',icon:'⚠️',label:'내부경고',perm:'warn_give'},].forEach(item=>{
     if(item.perm&&!can(item.perm)) return;
     const d=document.createElement('div'); d.className='ni';
     d.innerHTML=`<span class="ni-ic">${item.icon}</span>${item.label}`;
@@ -3365,14 +3337,11 @@ async function saveProfile() {
 async function saveFactionInfo() {
   if(!ME.factionId) return;
   const fn = document.getElementById('settingFN')?.value.trim();
-  const ft = document.getElementById('settingFT')?.value;
   if(!fn) { toast('팩션명을 입력해주세요.','error'); return; }
   try {
-    await updateDoc(doc(db,'factions',ME.factionId),{ factionName:fn, factionType:ft });
-    ME.factionType = ft;
+    // factionType은 저장하지 않음 (관리자만 변경 가능, 악용 방지)
+    await updateDoc(doc(db,'factions',ME.factionId),{ factionName:fn });
     ['sbFN','mobDrFN'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=fn; });
-    ['sbFT','mobDrFT'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=ft; });
-    renderNav(); // 팩션 유형 바뀌면 메뉴 재렌더
     toast('팩션 정보 저장 완료!','success');
   } catch(err){ toast('저장 실패: '+err.message,'error'); }
 }
@@ -3387,9 +3356,16 @@ async function saveSettings() {
       'settings.tradeEnabled':   document.getElementById('togTradeEnabled')?.classList.contains('on'),
       'settings.tradeAudit':     document.getElementById('togTradeAudit')?.classList.contains('on'),
       'settings.attendanceAuto': document.getElementById('togAttendance')?.classList.contains('on'),
+      'settings.noticeEnabled':     document.getElementById('togNoticeEnabled')?.classList.contains('on'),
+      'settings.attendanceEnabled': document.getElementById('togAttendanceEnabled')?.classList.contains('on'),
+      'settings.rankEnabled':       document.getElementById('togRankEnabled')?.classList.contains('on'),
+      'settings.warnEnabled':       document.getElementById('togWarnEnabled')?.classList.contains('on'),
     });
-    FACTION_SETTINGS.rpEnabled      = document.getElementById('togRpEnabled')?.classList.contains('on');
-    FACTION_SETTINGS.tradeEnabled   = document.getElementById('togTradeEnabled')?.classList.contains('on');
+    // 로컬 반영
+    ['rpEnabled','tradeEnabled','noticeEnabled','attendanceEnabled','rankEnabled','warnEnabled'].forEach(k => {
+      const tid = 'tog' + k.charAt(0).toUpperCase() + k.slice(1);
+      FACTION_SETTINGS[k] = document.getElementById(tid)?.classList.contains('on');
+    });
     renderNav();
     toast('기능 설정 저장 완료!','success');
   } catch(err){ toast('저장 실패: '+err.message,'error'); }
@@ -3408,6 +3384,11 @@ function loadSettingsToggles(settings) {
   setToggle('togTradeEnabled',   settings.tradeEnabled   !== false);
   setToggle('togTradeAudit',     settings.tradeAudit     !== false);
   setToggle('togAttendance',     settings.attendanceAuto !== false);
+  setToggle('togNoticeEnabled',     FACTION_SETTINGS.noticeEnabled     !== false);
+  setToggle('togAttendanceEnabled', FACTION_SETTINGS.attendanceEnabled !== false);
+  setToggle('togRankEnabled',       FACTION_SETTINGS.rankEnabled        !== false);
+  setToggle('togWarnEnabled',       FACTION_SETTINGS.warnEnabled        !== false);
+
 }
 
 
@@ -3569,14 +3550,6 @@ async function approveTr(id) {
     const trData2 = trDoc.data();
     if(trData2?.authorId) {
       try { await updateDoc(doc(db,'factions',ME.factionId,'members',trData2.authorId),{ trade_count: fsIncrement(trData2.qty||1) }); } catch(e){}
-    }
-    // 매출을 금고에 반영
-    const amount = trDoc.data()?.amount || 0;
-    if(amount > 0) {
-      await addDoc(collection(db,'factions',ME.factionId,'transactions'),{
-        type:'in', amount, description:`거래 매출 (${trDoc.data()?.itemName||'-'})`,
-        createdAt: serverTimestamp(),
-      });
     }
     toast('거래 승인 완료! 금고에 반영됨.','success');
    
