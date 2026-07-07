@@ -166,6 +166,20 @@ input,textarea,select{font-family:var(--font);}
 <body>
 <div class="tw" id="tw"></div>
 
+<!-- ── 팩션원 목록 모달 ── -->
+<div class="mo" id="moMembers">
+<div class="md" style="max-width:640px;">
+  <div class="mh"><h2>👥 팩션원 목록</h2><p id="mmSub">팩션원 정보</p></div>
+  <div style="overflow-x:auto;max-height:440px;overflow-y:auto;">
+    <table class="tbl" style="width:100%;">
+      <thead><tr><th>이름</th><th>고유번호</th><th>직급</th><th>상태</th><th>RP</th><th>거래</th><th>경고</th></tr></thead>
+      <tbody id="memberListBody"><tr><td colspan="7" style="text-align:center;padding:20px;">불러오는 중...</td></tr></tbody>
+    </table>
+  </div>
+  <div class="mf"><button class="btn g sm" onclick="cm('moMembers')">닫기</button></div>
+</div>
+</div>
+
 <!-- ── 웹훅 테스트 모달 ── -->
 <div class="mo" id="moWhTest">
 <div class="md">
@@ -666,6 +680,7 @@ function checkSession() {
 // 앱 초기화
 // ══════════════════════════════════════════════
 async function initApp() {
+  loadMaintenanceStatus();
   // 네비 이벤트 먼저
   document.querySelectorAll('.ni[data-p]').forEach(el => {
     el.addEventListener('click', () => navTo(el.dataset.p, el));
@@ -746,16 +761,110 @@ function renderFactions(filter='') {
         <div class="fc-stat"><div class="v">${f.memberCount}</div><div class="l">팩션원</div></div>
         <div class="fc-stat"><div class="v" style="color:${whCount>0?'var(--success)':'var(--tx3)'};">${whCount}/5</div><div class="l">웹훅</div></div>
       </div>
+      <div style="margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+        <span style="font-size:11px;color:var(--tx3);">구분:</span>
+        <select class="inp" style="flex:1;padding:4px 8px;font-size:12px;" onchange="changeFactionType('${f.id}', this.value)">
+          <option ${(f.type||'').includes('경찰')||(f.type||'').includes('police')?'selected':''} value="경찰 / 공무원">경찰 / 공무원</option>
+          <option ${(f.type||'').includes('EMS')||(f.type||'').includes('소방')||(f.type||'').includes('ems')?'selected':''} value="EMS / 소방">EMS / 소방</option>
+          <option ${(f.type||'').includes('기업')||(f.type||'').includes('회사')?'selected':''} value="기업 / 회사">기업 / 회사</option>
+          <option ${(f.type||'').includes('조직')||(f.type||'').includes('마피아')?'selected':''} value="조직 / 마피아">조직 / 마피아</option>
+          <option ${(f.type||'').includes('갱단')||(f.type||'').includes('범죄')?'selected':''} value="갱단 / 범죄조직">갱단 / 범죄조직</option>
+          <option ${!f.type||f.type==='기타'?'selected':''} value="기타">기타</option>
+        </select>
+      </div>
       <div class="fc-actions">
         <button class="btn p sm" onclick="openFactionDetail('${f.id}')">🔔 웹훅 설정</button>
-        <button class="btn g sm" onclick="toast('Firebase 연동 후 실제 데이터 조회 가능','info')">👥 팩션원 보기</button>
-        <button class="btn d sm" onclick="toast('팩션 비활성화 처리','warn')">🔒 비활성화</button>
+        <button class="btn g sm" onclick="viewMembers('${f.id}','${(f.factionName||'').replace(/'/g,"")}')">👥 팩션원 보기</button>
+        <button class="btn d sm" onclick="toggleFactionActive('${f.id}',${f.active !== false})">${f.active !== false ? '🔒 비활성화' : '🔓 활성화'}</button>
       </div>`;
     el.appendChild(d);
   });
 }
 
 function filterFactions(v) { renderFactions(v); }
+
+async function toggleMaintenance() {
+  const tog = document.getElementById('maintenanceToggle');
+  if(!tog) return;
+  const willBeOn = !tog.classList.contains('on');
+  if(!confirm(willBeOn
+    ? '점검 모드를 켜시겠습니까?\n모든 팩션원의 인트라넷 접속이 차단됩니다.'
+    : '점검 모드를 끄시겠습니까?')) return;
+  try {
+    const data = await apiFetch('/api/admin/maintenance', {
+      method: 'PUT',
+      body: JSON.stringify({ maintenance: willBeOn }),
+    });
+    if(data && data.ok) {
+      tog.classList.toggle('on', willBeOn);
+      toast(willBeOn ? '🔧 점검 모드 ON - 인트라넷 접속 차단됨' : '✅ 점검 모드 OFF', willBeOn?'warn':'success');
+    } else {
+      toast('점검 모드 변경 실패','error');
+    }
+  } catch(e) { toast('오류: '+e.message,'error'); }
+}
+
+async function loadMaintenanceStatus() {
+  try {
+    const data = await apiFetch('/api/admin/maintenance');
+    const tog = document.getElementById('maintenanceToggle');
+    if(tog && data) tog.classList.toggle('on', data.maintenance === true);
+  } catch(e) {}
+}
+
+
+
+async function viewMembers(factionId, factionName) {
+  om('moMembers');
+  const sub = document.getElementById('mmSub');
+  if(sub) sub.textContent = `${factionName || '팩션'} 팩션원`;
+  const body = document.getElementById('memberListBody');
+  if(body) body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;">불러오는 중...</td></tr>';
+  try {
+    const data = await apiFetch(`/api/admin/faction/${factionId}/members`);
+    if(!data || !data.ok) { if(body) body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--err);">조회 실패</td></tr>'; return; }
+    const members = data.members || [];
+    if(members.length === 0) { if(body) body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--tx3);">팩션원이 없습니다.</td></tr>'; return; }
+    const statusMap = { approved:'✅ 승인', pending:'⏳ 대기', resigned:'🚪 사직', rejected:'❌ 거절' };
+    body.innerHTML = members.sort((a,b)=>(b.isFounder?1:0)-(a.isFounder?1:0)).map(m => `
+      <tr>
+        <td>${m.isFounder?'👑 ':''}${esc(m.username)}</td>
+        <td>${esc(m.gameId)||'-'}</td>
+        <td>${esc(m.rankName)}</td>
+        <td>${statusMap[m.status]||m.status}</td>
+        <td style="text-align:right;">${m.rp_score}</td>
+        <td style="text-align:right;">${m.trade_count}</td>
+        <td style="text-align:right;">${m.warn_count}</td>
+      </tr>`).join('');
+  } catch(e) {
+    if(body) body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--err);">오류: '+e.message+'</td></tr>';
+  }
+}
+
+async function toggleFactionActive(factionId, currentActive) {
+  const newActive = !currentActive;
+  if(!confirm(newActive ? '이 팩션을 활성화하시겠습니까?' : '이 팩션을 비활성화하시겠습니까?\n비활성화 시 팩션원 접속이 차단됩니다.')) return;
+  try {
+    const data = await apiFetch(`/api/admin/faction/${factionId}/status`, {
+      method: 'PUT', body: JSON.stringify({ active: newActive }),
+    });
+    if(data && data.ok) { toast(newActive?'활성화 완료':'비활성화 완료','success'); loadFactions(); }
+    else toast('처리 실패','error');
+  } catch(e) { toast('오류: '+e.message,'error'); }
+}
+
+async function changeFactionType(factionId, newType) {
+  if(!newType) return;
+  try {
+    const data = await apiFetch(`/api/admin/faction/${factionId}/type`, {
+      method: 'PUT', body: JSON.stringify({ factionType: newType }),
+    });
+    if(data && data.ok) { toast('팩션 구분 변경 완료: '+newType,'success'); loadFactions(); }
+    else toast('변경 실패','error');
+  } catch(e) { toast('오류: '+e.message,'error'); }
+}
+
+
 
 function renderCodes() {
   const tb = document.getElementById('codeList');
@@ -1108,6 +1217,10 @@ window.openFactionDetail = openFactionDetail;
 window.saveFactionDetail = saveFactionDetail;
 window.deleteFaction     = deleteFaction;
 window.testWh            = testWh;
+window.viewMembers       = viewMembers;
+window.toggleMaintenance = toggleMaintenance;
+window.toggleFactionActive = toggleFactionActive;
+window.changeFactionType = changeFactionType;
 window.sendWhTest        = sendWhTest;
 window.openWhTest        = openWhTest;
 window.om                = om;
