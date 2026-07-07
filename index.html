@@ -1395,7 +1395,37 @@ async function handleOAuthCallback(token) {
   }
 }
 
+
+// ── 점검모드 체크 ─────────────────────────────
+async function checkMaintenance() {
+  try {
+    const res = await fetch(API_URL + '/api/admin/maintenance');
+    const data = await res.json();
+    if(data && data.maintenance === true) {
+      showMaintenanceScreen(data.message || '시스템 점검 중입니다.');
+      return true;
+    }
+  } catch(e) { console.warn('[점검모드 체크]', e); }
+  return false;
+}
+
+function showMaintenanceScreen(msg) {
+  // 로그아웃 + 점검 화면 표시
+  teardownListeners();
+  if(window._onlineHeartbeat) { clearInterval(window._onlineHeartbeat); }
+  document.body.innerHTML = `
+    <div style="position:fixed;inset:0;background:#0a0a0f;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;font-family:'Pretendard',sans-serif;">
+      <div style="font-size:64px;margin-bottom:20px;">🔧</div>
+      <h1 style="font-size:28px;font-weight:800;margin-bottom:12px;">시스템 점검 중</h1>
+      <p style="font-size:15px;color:#9ca3af;max-width:400px;line-height:1.6;">${esc(msg)}</p>
+      <button onclick="location.reload()" style="margin-top:28px;padding:12px 28px;background:#2563EB;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">다시 확인</button>
+      <p style="margin-top:16px;font-size:12px;color:#6b7280;">Turn City Intranet</p>
+    </div>`;
+}
+
 async function checkUserFaction(uid) {
+  // 점검모드면 접속 차단
+  if(await checkMaintenance()) return;
   try {
     const userDoc = await getDoc(doc(db,'users',uid));
     if (!userDoc.exists() || !userDoc.data().factionId) { showJoinScreen(null); return; }
@@ -3720,7 +3750,7 @@ async function notifyWebhook(type, data) {
 
 window.om=om; window.cm=cm; window.toast=toast;
 window.showLoading=showLoading; window.hideLoading=hideLoading;
-window.openOnlineList=openOnlineList; window.renderOnlineList=renderOnlineList;
+window.checkMaintenance=checkMaintenance; window.openOnlineList=openOnlineList; window.renderOnlineList=renderOnlineList;
 window.renderDashNotices=renderDashNotices; window.notifyWebhook=notifyWebhook;
 window.toggleFine=toggleFine; window.recalcFines=recalcFines; window.submitFine=submitFine; window.renderFineCategories=renderFineCategories; window.renderFineStats=renderFineStats;
 window.saveCz=saveCz; window.loadMyTheme=loadMyTheme;
@@ -3788,6 +3818,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const fid = uDoc.data().factionId;
           const mDoc = await getDoc(doc(db,'factions',fid,'members',user.uid));
           if (mDoc.exists() && (mDoc.data().status === 'approved' || mDoc.data().isFounder)) {
+            if(await checkMaintenance()) return;
             await checkUserFaction(user.uid);
           }
         }
