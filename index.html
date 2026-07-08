@@ -1189,14 +1189,11 @@ const FINE_TABLE = {
   ],
 };
 const BAIL_PER_MIN = 1000000; // 보석금: 구금 1분당 100만원
-// 공무 팩션 판별 (factionType 또는 tag/name으로)
+// 공무 팩션 판별 (factionType='공무원'만 벌금계산기 사용)
 function isGovFaction() {
-  const t = (ME.factionType || '').toLowerCase();
-  if (t === 'police' || t === 'ems') return true;
-  // factionType이 한글이거나 다르게 저장된 경우 대비
-  const govKeywords = ['police','ems','경찰','공무','소방','병원','구급'];
-  const checkStr = `${ME.factionType||''} ${ME.factionName||''} ${ME.factionTag||''}`.toLowerCase();
-  return govKeywords.some(k => checkStr.includes(k.toLowerCase()));
+  const t = (ME.factionType || '');
+  // 관리자가 지정한 '공무원' 카테고리만 (police는 구버전 호환)
+  return t.includes('공무') || (ME.factionType || '').toLowerCase().includes('police');
 }
 // 디버그용 노출
 window.checkGov = function() {
@@ -2902,7 +2899,7 @@ async function obNext() {
   if (obStep === OB_STEPS) {
     const code = (document.getElementById('obCode')?.value || '').trim();
     const fn   = window._obFN || document.getElementById('obFN')?.value.trim() || '';
-    const ft   = window._obFT || document.getElementById('obFT')?.value || '기타';
+    const ft   = window._obFT || document.getElementById('obFT')?.value || '기업'; // 기본 기업, 관리자가 공무원 지정 시 벌금계산기 활성화
     const rn   = window._obRN || document.getElementById('obRN')?.value.trim() || '팩션장';
     if (!code) { toast('인증 코드를 입력해주세요.','error'); return; }
     if (!auth.currentUser) { toast('로그인이 필요합니다.','error'); return; }
