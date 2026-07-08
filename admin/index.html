@@ -779,12 +779,9 @@ function renderFactions(filter='') {
       <div style="margin-bottom:8px;display:flex;align-items:center;gap:6px;">
         <span style="font-size:11px;color:var(--tx3);">구분:</span>
         <select class="inp" style="flex:1;padding:4px 8px;font-size:12px;" onchange="changeFactionType('${f.id}', this.value)">
-          <option ${(f.type||'').includes('경찰')||(f.type||'').includes('police')?'selected':''} value="경찰 / 공무원">경찰 / 공무원</option>
-          <option ${(f.type||'').includes('EMS')||(f.type||'').includes('소방')||(f.type||'').includes('ems')?'selected':''} value="EMS / 소방">EMS / 소방</option>
-          <option ${(f.type||'').includes('기업')||(f.type||'').includes('회사')?'selected':''} value="기업 / 회사">기업 / 회사</option>
-          <option ${(f.type||'').includes('조직')||(f.type||'').includes('마피아')?'selected':''} value="조직 / 마피아">조직 / 마피아</option>
-          <option ${(f.type||'').includes('갱단')||(f.type||'').includes('범죄')?'selected':''} value="갱단 / 범죄조직">갱단 / 범죄조직</option>
-          <option ${!f.type||f.type==='기타'?'selected':''} value="기타">기타</option>
+          <option ${(f.type||'').includes('공무')||(f.type||'').includes('police')?'selected':''} value="공무원">공무원 (벌금계산기)</option>
+          <option ${(f.type||'').includes('기업')?'selected':''} value="기업">기업</option>
+          <option ${(f.type||'').includes('조직')?'selected':''} value="조직">조직</option>
         </select>
       </div>
       <div class="fc-actions">
