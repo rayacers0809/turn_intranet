@@ -784,7 +784,7 @@ input,textarea,select{font-family:var(--font);}
       <div class="mob-drawer-head">
         <div class="sb-logo" id="mobDrLogo">TC</div>
         <span class="sb-fn" id="mobDrFN">-</span>
-        <span class="sb-ft" id="mobDrFT">-</span>
+        <span class="sb-ft" id="mobDrFT" style="display:none;">-</span>
       </div>
       <div class="mob-drawer-user">
         <div class="uava" id="mobDrAva">?</div>
@@ -814,7 +814,7 @@ input,textarea,select{font-family:var(--font);}
     <div class="sb-brand">
       <div class="sb-logo" id="sbLogo">TC</div>
       <span class="sb-fn" id="sbFN">-</span>
-      <span class="sb-ft" id="sbFT">-</span>
+      <span class="sb-ft" id="sbFT" style="display:none;">-</span>
     </div>
     <div class="sb-user" style="cursor:pointer;" onclick="om('moEditProfile')" title="프로필 편집">
       <div class="uava" id="uAva">?</div>
@@ -1189,11 +1189,11 @@ const FINE_TABLE = {
   ],
 };
 const BAIL_PER_MIN = 1000000; // 보석금: 구금 1분당 100만원
-// 공무 팩션 판별 (factionType='공무원'만 벌금계산기 사용)
+// 공무 팩션 판별 (공무원 카테고리 = 벌금계산기 사용)
 function isGovFaction() {
-  const t = (ME.factionType || '');
-  // 관리자가 지정한 '공무원' 카테고리만 (police는 구버전 호환)
-  return t.includes('공무') || (ME.factionType || '').toLowerCase().includes('police');
+  const t = (ME.factionType || '').toLowerCase();
+  // '공무원' 카테고리 + 구버전 호환(경찰/police)
+  return t.includes('공무') || t.includes('경찰') || t.includes('police');
 }
 // 디버그용 노출
 window.checkGov = function() {
