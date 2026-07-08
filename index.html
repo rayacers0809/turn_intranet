@@ -474,6 +474,14 @@ input,textarea,select{font-family:var(--font);}
   <div style="display:flex;flex-direction:column;gap:13px;">
     <div class="fi"><label>직급 변경</label><select class="inp" id="mmRank"><option value="">직급 선택...</option></select></div>
     <button class="btn p" onclick="mmChangeRank()">직급 변경 적용</button>
+    <div id="mmWarnWrap" style="border-top:1px solid var(--bd);padding-top:13px;display:none;">
+      <label style="font-size:12px;font-weight:600;color:var(--tx2);display:flex;align-items:center;gap:6px;margin-bottom:8px;">⚠️ 내부경고 관리 <span style="color:var(--tx3);font-weight:500;">현재</span> <span id="mmWarnCount" style="font-weight:800;color:var(--danger);">0</span> <span style="color:var(--tx3);font-weight:500;">회</span></label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input class="inp" id="mmWarnAmount" type="number" min="1" value="1" style="width:80px;text-align:center;">
+        <button class="btn" style="flex:1;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.35);color:#22C55E;" onclick="mmDeductWarn()">➖ 경고 차감</button>
+      </div>
+      <div style="font-size:11px;color:var(--tx3);margin-top:6px;">차감 시 해당 팩션원의 누적 경고 수가 줄어듭니다.</div>
+    </div>
     <div id="mmTransferWrap" style="border-top:1px solid var(--bd);padding-top:13px;display:none;">
       <button class="btn" style="width:100%;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);color:#A855F7;margin-bottom:8px;" onclick="mmTransfer()">👑 팩션장 위임</button>
       <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">위임 시 본인은 일반 직급으로 강등됩니다.</div>
@@ -1758,6 +1766,7 @@ function setupRealtimeListeners() {
   // 10. 물품
   _unsubscribers.push(onSnapshot(collection(db,'factions',fid,'items'), (snap) => {
     ITEMS = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    sortItems();
     renderItemList(); updateTrItemSelect();
   }, err => console.warn('[물품 리스너]', err.code)));
 
@@ -1838,6 +1847,7 @@ async function loadAllData(force = false) {
     RANKS_DATA  = ranksSnap.docs.map((d,i) => ({ id:d.id, n:i+1, name:d.data().name, cls:d.data().rankClass||'일반직', perms:d.data().perms||[], isFounder:d.data().isFounder||false }));
     ZONES = zoneSnap.docs.map(d => ({ id:d.id, ...d.data() }));
     ITEMS = itemSnap.docs.map(d => ({ id:d.id, ...d.data() }));
+    sortItems();
     const notices = ntSnap.docs.map(d => ({ id:d.id, ...d.data() }));
     const rpData  = rpSnap.docs.map(d => ({ id:d.id, ...d.data() }));
     const trData  = trSnap.docs.map(d => ({ id:d.id, ...d.data() }));
@@ -2359,14 +2369,48 @@ function renderZoneList() {
   });
 }
 
+function sortItems() {
+  // order 필드 우선, 없으면 생성순으로 정렬 (물품 위치 이동 지원)
+  ITEMS.sort((a,b) => {
+    const ao=a.order, bo=b.order;
+    if(ao==null && bo==null) return (a.createdAt?.seconds||0)-(b.createdAt?.seconds||0);
+    if(ao==null) return 1;
+    if(bo==null) return -1;
+    return ao-bo;
+  });
+}
+
 function renderItemList() {
   const tb=document.getElementById('itemList'); if(!tb) return; tb.innerHTML='';
   if(!ITEMS.length){ tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:24px;">등록된 물품 없음</td></tr>'; return; }
-  ITEMS.forEach(item => {
+  ITEMS.forEach((item,idx) => {
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td><b>${item.name}</b></td><td style="font-family:var(--mono);color:var(--p);">₩${(item.price||0).toLocaleString()}</td><td><span class="badge bbw">${item.dailyLimit}개/일</span></td><td><span class="badge bbg">${item.category}</span></td><td><button class="btn d sm" onclick="deleteItem('${item.id}','${item.name}')">삭제</button></td>`;
+    const upDis  = idx===0 ? 'opacity:.3;pointer-events:none;' : '';
+    const dnDis  = idx===ITEMS.length-1 ? 'opacity:.3;pointer-events:none;' : '';
+    tr.innerHTML=`<td><b>${esc(item.name)}</b></td><td style="font-family:var(--mono);color:var(--p);">₩${(item.price||0).toLocaleString()}</td><td><span class="badge bbw">${item.dailyLimit}개/일</span></td><td><span class="badge bbg">${esc(item.category)}</span></td><td style="white-space:nowrap;"><button class="btn g sm" title="위로" style="padding:4px 8px;font-size:12px;${upDis}" onclick="moveItem('${item.id}',-1)">▲</button> <button class="btn g sm" title="아래로" style="padding:4px 8px;font-size:12px;${dnDis}" onclick="moveItem('${item.id}',1)">▼</button> <button class="btn d sm" onclick="deleteItem('${item.id}','${(item.name||'').replace(/'/g,'')}')">삭제</button></td>`;
     tb.appendChild(tr);
   });
+}
+
+let _itemMoveBusy=false;
+async function moveItem(id, dir) {
+  if(_itemMoveBusy) return;
+  if(!ME.factionId){ toast('권한이 없습니다.','error'); return; }
+  const list = ITEMS.slice();
+  const i = list.findIndex(x=>x.id===id);
+  if(i<0) return;
+  const j = i + dir;
+  if(j<0 || j>=list.length) return;
+  // 이웃과 위치 교환
+  const tmp = list[i]; list[i]=list[j]; list[j]=tmp;
+  _itemMoveBusy=true;
+  try {
+    // 전체 order 값을 인덱스 기준으로 재정렬해 일관성 보장
+    await Promise.all(list.map((it,idx) =>
+      updateDoc(doc(db,'factions',ME.factionId,'items',it.id),{ order: idx })
+    ));
+  } catch(err){ toast('순서 변경 실패: '+err.message,'error'); }
+  finally { _itemMoveBusy=false; }
 }
 
 function updateRpZoneSelect() {
@@ -2787,7 +2831,7 @@ async function addItem() {
   const category=document.getElementById('itemCategory')?.value||'기타';
   if(!name){toast('물품명을 입력해주세요.','error');return;}
   try {
-    await addDoc(collection(db,'factions',ME.factionId,'items'),{name,price,dailyLimit,category,createdAt:serverTimestamp()});
+    await addDoc(collection(db,'factions',ME.factionId,'items'),{name,price,dailyLimit,category,order:ITEMS.length,createdAt:serverTimestamp()});
     cm('moItemAdd'); toast(`${name} 물품 추가!`,'success');
     document.getElementById('itemName').value='';
   } catch(err){ toast('오류: '+err.message,'error'); }
@@ -3319,7 +3363,7 @@ window.onItemSelect=onItemSelect; window.calcTrTotal=calcTrTotal; window.checkDa
 window.submitNt=submitNt; window.saveWebhooks=saveWebhooks;
 window.testWh=testWh; window.regenCode=regenCode;
 window.addZone=addZone; window.deleteZone=deleteZone;
-window.addItem=addItem; window.deleteItem=deleteItem;
+window.addItem=addItem; window.deleteItem=deleteItem; window.moveItem=moveItem;
 window.switchSettingsTab=switchSettingsTab;
 window.openMobDrawer=openMobDrawer; window.closeMobDrawer=closeMobDrawer; window.syncMobUI=syncMobUI;
 
@@ -3434,6 +3478,16 @@ function openMemberManage(memberId, name) {
   // 팩션장만 위임 버튼 표시
   const tw = document.getElementById('mmTransferWrap');
   if(tw) tw.style.display = ME.isFounder ? 'block' : 'none';
+  // 내부경고 관리: 경고 부여 권한자만 노출, 현재 누적 경고 수 표시
+  const ww = document.getElementById('mmWarnWrap');
+  const target = MEMBERS_CACHE.find(m => m.id === memberId);
+  if(ww) {
+    ww.style.display = can('warn_give') ? 'block' : 'none';
+    const wc = document.getElementById('mmWarnCount');
+    if(wc) wc.textContent = target?.warn_count || 0;
+    const wa = document.getElementById('mmWarnAmount');
+    if(wa) wa.value = 1;
+  }
   const sel = document.getElementById('mmRank');
   if(sel) {
     sel.innerHTML = '<option value="">직급 선택...</option>';
@@ -3467,6 +3521,27 @@ async function mmChangeRank() {
     toast('직급 변경 완료!','success');
    
   } catch(err){ toast('변경 실패: '+err.message,'error'); }
+}
+
+async function mmDeductWarn() {
+  if(!mmTargetId || !ME.factionId) return;
+  if(!can('warn_give')) { toast('경고 관리 권한이 없습니다.','error'); return; }
+  const target = MEMBERS_CACHE.find(m => m.id === mmTargetId);
+  const cur = target?.warn_count || 0;
+  if(cur <= 0) { toast('차감할 경고가 없습니다.','info'); return; }
+  let amount = parseInt(document.getElementById('mmWarnAmount')?.value) || 1;
+  if(amount < 1) amount = 1;
+  const deduct = Math.min(amount, cur); // 0 미만 방지
+  if(!confirm(`'${target?.username||'-'}'님의 내부경고를 ${deduct}회 차감하시겠습니까?\n(${cur}회 → ${cur-deduct}회)`)) return;
+  try {
+    await updateDoc(doc(db,'factions',ME.factionId,'members',mmTargetId),{ warn_count: fsIncrement(-deduct) });
+    await addDoc(collection(db,'factions',ME.factionId,'activity_logs'),{
+      type:'warn_deducted', message:`${target?.username||'-'}님의 내부경고 ${deduct}회가 차감되었습니다.`, userId:ME.uid, createdAt:serverTimestamp(),
+    });
+    const wc = document.getElementById('mmWarnCount');
+    if(wc) wc.textContent = cur - deduct;
+    toast(`경고 ${deduct}회 차감 완료.`,'success');
+  } catch(err){ toast('차감 실패: '+err.message,'error'); }
 }
 
 async function mmKick() {
@@ -3758,7 +3833,7 @@ window.toggleFine=toggleFine; window.recalcFines=recalcFines; window.submitFine=
 window.saveCz=saveCz; window.loadMyTheme=loadMyTheme;
 window.saveProfile=saveProfile; window.openEditProfile=openEditProfile;
 window.saveFactionInfo=saveFactionInfo; window.saveSettings=saveSettings; window.loadSettingsToggles=loadSettingsToggles;
-window.openMemberManage=openMemberManage; window.mmChangeRank=mmChangeRank; window.mmKick=mmKick; window.mmTransfer=mmTransfer;
+window.openMemberManage=openMemberManage; window.mmChangeRank=mmChangeRank; window.mmKick=mmKick; window.mmTransfer=mmTransfer; window.mmDeductWarn=mmDeductWarn;
 window.submitResign=submitResign; window.openWarnModal=openWarnModal; window.submitWarn=submitWarn;
 window.approveTr=approveTr; window.rejectTr=rejectTr; window.deleteNotice=deleteNotice;
 window.openRankEdit=openRankEdit; window.selectEditClass=selectEditClass; window.saveRankEdit=saveRankEdit; window.deleteRank=deleteRank;
