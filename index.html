@@ -1083,6 +1083,7 @@ input,textarea,select{font-family:var(--font);}
               <div><div class="sr"><div class="si"><div class="sl2">내부경고 알림</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div><div style="display:flex;gap:6px;margin-top:7px;"><input class="inp" id="whWarn" placeholder="https://discord.com/api/webhooks/..." style="flex:1;padding:8px 10px;font-size:12px;"><button class="btn g sm" onclick="testWh('warn')">테스트</button></div></div>
               <div><div class="sr"><div class="si"><div class="sl2">공지사항 알림</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div><div style="display:flex;gap:6px;margin-top:7px;"><input class="inp" id="whNotice" placeholder="https://discord.com/api/webhooks/..." style="flex:1;padding:8px 10px;font-size:12px;"><button class="btn g sm" onclick="testWh('notice')">테스트</button></div></div>
               <div><div class="sr"><div class="si"><div class="sl2">팩션원 알림</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div><div style="display:flex;gap:6px;margin-top:7px;"><input class="inp" id="whMember" placeholder="https://discord.com/api/webhooks/..." style="flex:1;padding:8px 10px;font-size:12px;"><button class="btn g sm" onclick="testWh('member')">테스트</button></div></div>
+              <div id="whFineSection" style="display:none;"><div class="sr"><div class="si"><div class="sl2">🚨 벌금 부과 로그</div><div class="sd">공무 팩션 전용</div></div></div><div style="display:flex;gap:6px;margin-top:7px;"><input class="inp" id="whFine" placeholder="https://discord.com/api/webhooks/..." style="flex:1;padding:8px 10px;font-size:12px;"><button class="btn g sm" onclick="testWh('fine')">테스트</button></div></div>
               <button class="btn p" onclick="saveWebhooks()">웹훅 저장</button>
             </div>
           </div>
@@ -1489,17 +1490,24 @@ function renderJoinPending() {
 let codeCheckTimer = null;
 async function checkJoinCode(val) {
   const btn = document.getElementById('joinNextBtn');
-  // 이미 팩션 소속이면 가입 차단
+  // 이미 팩션 소속이면 가입 차단 (실제 멤버 문서 존재까지 확인)
   if(auth.currentUser) {
     try {
       const uDoc = await getDoc(doc(db,'users',auth.currentUser.uid));
-      if(uDoc.exists() && uDoc.data().factionId) {
-        const found = document.getElementById('factionFound');
-        if(found) { found.className='faction-found err'; found.textContent='⚠️ 이미 소속된 팩션이 있습니다. 한 계정은 하나의 팩션만 가입 가능합니다.'; }
-        if(btn) btn.disabled = true;
-        return;
+      const existingFid = uDoc.exists() && uDoc.data().factionId;
+      if(existingFid) {
+        // factionId가 있어도 실제 members 문서가 있는지 확인 (유령 데이터 방지)
+        const mDoc = await getDoc(doc(db,'factions',existingFid,'members',auth.currentUser.uid));
+        if(mDoc.exists()) {
+          const found = document.getElementById('factionFound');
+          if(found) { found.className='faction-found err'; found.style.background='rgba(255,92,92,.08)'; found.innerHTML='<span style="color:var(--danger);">⚠️ 이미 소속된 팩션이 있습니다. 한 계정은 하나의 팩션만 가입 가능합니다.</span>'; }
+          if(btn) btn.disabled = true;
+          return;
+        }
+        // members 문서가 없으면 유령 factionId → 정리하고 가입 진행
+        try { await updateDoc(doc(db,'users',auth.currentUser.uid),{factionId:null, factionStatus:null}); } catch(e){}
       }
-    } catch(e){}
+    } catch(e){ console.warn('[이중가입체크]',e); }
   }
   const found = document.getElementById('factionFound');
   if (!btn || !found) return;
@@ -1615,7 +1623,10 @@ async function loadIntranet(factionData, memberData, userData) {
 
   // 웹훅 로드
   const wh = factionData.webhooks || {};
-  ['rp','trade','warn','notice','member'].forEach(k => { const el=document.getElementById('wh'+k.charAt(0).toUpperCase()+k.slice(1)); if(el && wh[k]) el.value=wh[k]; });
+  ['rp','trade','warn','notice','member','fine'].forEach(k => { const el=document.getElementById('wh'+k.charAt(0).toUpperCase()+k.slice(1)); if(el && wh[k]) el.value=wh[k]; });
+  // 공무 팩션이면 벌금 웹훅 섹션 표시
+  const whFineSec = document.getElementById('whFineSection');
+  if(whFineSec) whFineSec.style.display = isGovFaction() ? 'block' : 'none';
   // 가입코드
   const jc = document.getElementById('joinCode'); if(jc) jc.textContent = factionData.joinCode || '-';
   renderUserInfo(); renderNav(); applyPermUI(); startClock();
@@ -2828,6 +2839,7 @@ async function saveWebhooks() {
     warn:  document.getElementById('whWarn')?.value.trim()||'',
     notice:document.getElementById('whNotice')?.value.trim()||'',
     member:document.getElementById('whMember')?.value.trim()||'',
+    fine:  document.getElementById('whFine')?.value.trim()||'',
   };
   try {
     await updateDoc(doc(db,'factions',ME.factionId),{webhooks});
@@ -2841,9 +2853,17 @@ async function testWh(key) {
   if(!url){toast('웹훅 URL을 입력해주세요.','error');return;}
   toast('테스트 전송 중...','info');
   try {
-    await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({embeds:[{color:0x4F8EF7,description:'✅ Turn City 인트라넷 웹훅 테스트 메시지입니다.',footer:{text:'Turn City 인트라넷'}}]})});
-    toast('테스트 전송 완료!','success');
-  } catch(e){ toast('전송 실패 (CORS - 서버 통해 전송 권장)','warn'); }
+    // 서버 경유 (브라우저에서 Discord 직접 호출은 CORS로 막힘)
+    const token = await auth.currentUser.getIdToken();
+    const res = await fetch(API_URL + '/api/intranet/webhook-test', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({ url, type: key }),
+    });
+    const data = await res.json();
+    if(data.ok) toast('테스트 전송 완료! 디스코드를 확인하세요.','success');
+    else toast('전송 실패: '+(data.reason||'알 수 없음'),'error');
+  } catch(e){ toast('전송 실패: '+e.message,'error'); }
 }
 
 async function regenCode() {
