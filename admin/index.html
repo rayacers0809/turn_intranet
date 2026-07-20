@@ -453,20 +453,22 @@ input,textarea,select{font-family:var(--font);}
       <div class="page" id="page-weekly">
         <div class="card">
           <div class="ch">
-            <div class="ct"><span class="ti">📊</span>이번 주 전체 팩션 벌금 실적</div>
+            <div class="ct"><span class="ti">📊</span>이번 주 전체 팩션 실적</div>
             <span style="font-size:12px;color:var(--tx3);" id="wkRange">-</span>
           </div>
           <div style="font-size:11px;color:var(--tx3);margin-bottom:12px;">한국시간 일요일 00시 기준으로 한 주가 구분됩니다.</div>
 
           <div class="fc-stats" style="margin-bottom:14px;">
-            <div class="fc-stat"><div class="v" id="wkTotalFine">-</div><div class="l">총 벌금</div></div>
-            <div class="fc-stat"><div class="v" id="wkTotalJail">-</div><div class="l">총 구금</div></div>
-            <div class="fc-stat"><div class="v" id="wkTotalCount">-</div><div class="l">부과 건수</div></div>
+            <div class="fc-stat"><div class="v" id="wkRp">-</div><div class="l">RP 점수</div></div>
+            <div class="fc-stat"><div class="v" id="wkTrade">-</div><div class="l">거래</div></div>
+            <div class="fc-stat"><div class="v" id="wkWarn">-</div><div class="l">경고</div></div>
+            <div class="fc-stat"><div class="v" id="wkAtt">-</div><div class="l">출근</div></div>
+            <div class="fc-stat"><div class="v" id="wkTotalFine">-</div><div class="l">벌금</div></div>
           </div>
 
           <table class="tbl">
-            <thead><tr><th>팩션</th><th style="text-align:right;">건수</th><th style="text-align:right;">총 벌금</th><th style="text-align:right;">총 구금</th></tr></thead>
-            <tbody id="wkTableBody"><tr><td colspan="4" style="text-align:center;padding:20px;color:var(--tx3);">불러오는 중...</td></tr></tbody>
+            <thead><tr><th>팩션</th><th style="text-align:right;">RP</th><th style="text-align:right;">거래</th><th style="text-align:right;">경고</th><th style="text-align:right;">출근</th><th style="text-align:right;">벌금</th></tr></thead>
+            <tbody id="wkTableBody"><tr><td colspan="6" style="text-align:center;padding:20px;color:var(--tx3);">불러오는 중...</td></tr></tbody>
           </table>
 
           <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
@@ -480,8 +482,8 @@ input,textarea,select{font-family:var(--font);}
         <div class="card" style="margin-top:16px;">
           <div class="ch"><div class="ct"><span class="ti">🗂️</span>저장된 주간 기록</div></div>
           <table class="tbl">
-            <thead><tr><th>주차</th><th>기간</th><th style="text-align:right;">건수</th><th style="text-align:right;">총 벌금</th><th style="text-align:right;">총 구금</th><th>초기화</th></tr></thead>
-            <tbody id="wkArchiveBody"><tr><td colspan="6" style="text-align:center;padding:20px;color:var(--tx3);">불러오는 중...</td></tr></tbody>
+            <thead><tr><th>주차</th><th>기간</th><th style="text-align:right;">RP</th><th style="text-align:right;">거래</th><th style="text-align:right;">벌금</th><th style="text-align:right;">총 기록</th><th>초기화</th></tr></thead>
+            <tbody id="wkArchiveBody"><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--tx3);">불러오는 중...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -842,39 +844,43 @@ function fmtWon(n) { return '₩' + Number(n || 0).toLocaleString(); }
 
 async function loadWeeklyStats() {
   const body = document.getElementById('wkTableBody');
-  if (body) body.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--tx3);">불러오는 중...</td></tr>';
+  if (body) body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--tx3);">불러오는 중...</td></tr>';
   try {
     const data = await apiFetch('/api/admin/weekly-stats');
     if (!data || !data.ok) {
-      if (body) body.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--err);">조회 실패</td></tr>';
+      if (body) body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--err);">조회 실패</td></tr>';
       return;
     }
-    // 기간 표시
     const rng = document.getElementById('wkRange');
     if (rng) {
-      const s = new Date(data.weekStart), e = new Date(data.weekEnd.replace ? data.weekEnd : data.weekEnd);
-      const end = new Date(e.getTime() - 86400000);
+      const s = new Date(data.weekStart);
+      const end = new Date(new Date(data.weekEnd).getTime() - 86400000);
       const f = d => `${d.getMonth() + 1}/${d.getDate()}`;
       rng.textContent = `${f(s)} ~ ${f(end)} (${data.weekKey})`;
     }
-    document.getElementById('wkTotalFine').textContent  = fmtWon(data.grandFine);
-    document.getElementById('wkTotalJail').textContent  = (data.grandJail || 0) + '분';
-    document.getElementById('wkTotalCount').textContent = (data.grandCount || 0) + '건';
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('wkRp',        (data.rpScore || 0) + '점');
+    set('wkTrade',     (data.tradeCount || 0) + '건');
+    set('wkWarn',      (data.warnCount || 0) + '건');
+    set('wkAtt',       (data.attCount || 0) + '일');
+    set('wkTotalFine', fmtWon(data.fine));
 
     const facs = data.factions || [];
     if (!facs.length) {
-      body.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--tx3);">이번 주 부과 내역이 없습니다.</td></tr>';
+      body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--tx3);">이번 주 실적이 없습니다.</td></tr>';
       return;
     }
     body.innerHTML = facs.map(f => `
       <tr>
-        <td><strong>${esc(f.factionName)}</strong><div style="font-size:11px;color:var(--tx3);">${(f.members || []).map(m => esc(m.name) + ' ' + fmtWon(m.fine)).join(' · ')}</div></td>
-        <td style="text-align:right;">${f.count}건</td>
-        <td style="text-align:right;color:var(--p);font-weight:600;">${fmtWon(f.totalFine)}</td>
-        <td style="text-align:right;color:#EF4444;">${f.totalJail}분</td>
+        <td><strong>${esc(f.factionName)}</strong><div style="font-size:11px;color:var(--tx3);">${esc(f.factionType || '')}</div></td>
+        <td style="text-align:right;color:var(--p);font-weight:600;">${f.rpScore || 0}점<div style="font-size:10px;color:var(--tx3);">${f.rpCount || 0}건</div></td>
+        <td style="text-align:right;">${f.tradeCount || 0}건<div style="font-size:10px;color:var(--tx3);">${fmtWon(f.tradeAmount)}</div></td>
+        <td style="text-align:right;color:#EF4444;">${f.warnCount || 0}건</td>
+        <td style="text-align:right;">${f.attCount || 0}일</td>
+        <td style="text-align:right;">${f.fineCount ? fmtWon(f.fine) : '-'}<div style="font-size:10px;color:var(--tx3);">${f.jail ? f.jail + '분' : ''}</div></td>
       </tr>`).join('');
   } catch (e) {
-    if (body) body.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--err);">오류: ' + esc(e.message) + '</td></tr>';
+    if (body) body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--err);">오류: ' + esc(e.message) + '</td></tr>';
   }
 }
 
@@ -885,7 +891,7 @@ async function loadWeeklyArchives() {
     const data = await apiFetch('/api/admin/weekly-archives');
     const arr = (data && data.archives) || [];
     if (!arr.length) {
-      body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--tx3);">저장된 기록이 없습니다.</td></tr>';
+      body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--tx3);">저장된 기록이 없습니다.</td></tr>';
       return;
     }
     body.innerHTML = arr.map(a => {
@@ -894,20 +900,21 @@ async function loadWeeklyArchives() {
       return `<tr>
         <td style="font-family:var(--mono);font-size:12px;">${esc(a.weekKey)}</td>
         <td>${f(s)} ~ ${f(e)}</td>
-        <td style="text-align:right;">${a.grandCount || 0}건</td>
-        <td style="text-align:right;color:var(--p);">${fmtWon(a.grandFine)}</td>
-        <td style="text-align:right;color:#EF4444;">${a.grandJail || 0}분</td>
+        <td style="text-align:right;color:var(--p);">${a.rpScore || 0}점</td>
+        <td style="text-align:right;">${a.tradeCount || 0}건</td>
+        <td style="text-align:right;">${a.fine ? fmtWon(a.fine) : '-'}</td>
+        <td style="text-align:right;">${a.totalRecords || 0}건</td>
         <td><span class="badge ${a.reset ? 's' : ''}">${a.reset ? '초기화됨' : '저장만'}</span></td>
       </tr>`;
     }).join('');
   } catch (e) {
-    body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--err);">오류</td></tr>';
+    body.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--err);">오류</td></tr>';
   }
 }
 
 async function archiveWeek(reset) {
   const msg = reset
-    ? '이번 주 실적을 저장하고 초기화하시겠습니까?\n\n저장된 기록은 남지만, 각 팩션 인트라넷의 이번 주 실적은 0으로 리셋됩니다.'
+    ? '이번 주 실적을 저장하고 초기화하시겠습니까?\n\nRP·거래·경고·출근·벌금 전체가 대상입니다.\n기록은 보존되며 각 팩션 인트라넷의 이번 주 실적만 0이 됩니다.'
     : '이번 주 실적을 저장하시겠습니까?\n(초기화 없이 스냅샷만 남깁니다)';
   if (!confirm(msg)) return;
   toast('처리 중...', 'info');
