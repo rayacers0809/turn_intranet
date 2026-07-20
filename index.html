@@ -852,10 +852,10 @@ input,textarea,select{font-family:var(--font);}
           <button class="ci-btn" id="ciBtn" onclick="toggleCI()">출근하기</button>
         </div>
         <div class="sg">
-          <div class="sc cp"><div class="sl">📋 내 RP 점수</div><div class="sv" id="dashRpScore">-</div><div class="ss">누적 점수</div></div>
+          <div class="sc cp"><div class="sl">📋 내 RP 점수</div><div class="sv" id="dashRpScore">-</div><div class="ss">이번 주</div></div>
           <div class="sc cs"><div class="sl">✅ 출근률</div><div class="sv" id="dashAttRate">-</div><div class="ss">이번 주</div></div>
-          <div class="sc cw"><div class="sl">💰 거래 보고서</div><div class="sv" id="dashTradeCount">-</div><div class="ss">이번 달</div></div>
-          <div class="sc cd"><div class="sl">⚠️ 내부경고</div><div class="sv" id="dashWarnCount">-</div><div class="ss">누적</div></div>
+          <div class="sc cw"><div class="sl">💰 거래 보고서</div><div class="sv" id="dashTradeCount">-</div><div class="ss">이번 주</div></div>
+          <div class="sc cd"><div class="sl">⚠️ 내부경고</div><div class="sv" id="dashWarnCount">-</div><div class="ss">이번 주</div></div>
         </div>
         <div class="card" style="margin-bottom:16px;">
           <div class="ch"><div class="ct"><span class="ti">📢</span>최근 공지사항</div><button class="btn g sm" onclick="navTo('notice')" style="font-size:11px;padding:4px 10px;">전체보기</button></div>
@@ -1752,13 +1752,18 @@ function setupRealtimeListeners() {
   // 5. 거래 보고서
   _unsubscribers.push(onSnapshot(query(collection(db,'factions',fid,'reports_trade'), orderBy('createdAt','desc'), limit(100)), (snap) => {
     const data = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    window._tradeCache = data;
     window._pendingTr = data.filter(r=>r.status==='pending').length;
     renderTr(data);
+    renderDashboard(window._approvedDocs||[], window._rpCache||[], window._logCache||[]);
   }, err => console.warn('[거래 리스너]', err.code)));
 
   // 7. 경고
   _unsubscribers.push(onSnapshot(query(collection(db,'factions',fid,'warnings'), orderBy('createdAt','desc'), limit(50)), (snap) => {
-    renderWarnings(snap.docs.map(d => ({ id:d.id, ...d.data() })));
+    const data = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    window._warnCache = data;
+    renderWarnings(data);
+    renderDashboard(window._approvedDocs||[], window._rpCache||[], window._logCache||[]);
   }, err => console.warn('[경고 리스너]', err.code)));
 
   // 8. 출근부
@@ -1915,11 +1920,33 @@ function timeAgo(ts) {
 function renderDashboard(membersSnap, rpData, logData) {
   const dbW = document.getElementById('dbWelcome'); if(dbW) dbW.textContent=`안녕하세요, ${ME.name}님 👋`;
   const dbS = document.getElementById('dbSub'); if(dbS) dbS.textContent='오늘도 Turn City에서 활동해주세요.';
-  const dashRp = document.getElementById('dashRpScore'); if(dashRp) dashRp.textContent=ME.rp_score||0;
-  const dashWarn = document.getElementById('dashWarnCount');
   const myMemberData = membersSnap.find(d=>d.id===ME.uid)?.data();
-  if(dashWarn) dashWarn.textContent=myMemberData?.warn_count||0;
-  const dashTrade = document.getElementById('dashTradeCount'); if(dashTrade) dashTrade.textContent=myMemberData?.trade_count||0;
+
+  // ── 이번 주 실적 집계 (누적 필드가 아닌 실제 문서 기준) ──
+  const wkStart = getWeekStart();
+  const wkEnd   = new Date(wkStart); wkEnd.setDate(wkStart.getDate()+7);
+  const inWeek = (d) => {
+    if (d?.archived === true) return false;          // 관리자가 마감한 건 제외
+    const t = d?.createdAt?.toDate?.();
+    return t ? (t >= wkStart && t < wkEnd) : false;
+  };
+  window._weekRp    = (rpData||[]).filter(r => inWeek(r) && r.status==='approved');
+  window._weekTrade = (window._tradeCache||[]).filter(r => inWeek(r) && r.status==='approved');
+  window._weekWarn  = (window._warnCache||[]).filter(inWeek);
+
+  // 내 이번 주 RP 점수
+  const myWeekRp = window._weekRp
+    .filter(r => r.authorId === ME.uid)
+    .reduce((s,r) => s + (r.realScore ?? r.score ?? 0), 0);
+  const dashRp = document.getElementById('dashRpScore'); if(dashRp) dashRp.textContent = myWeekRp;
+
+  // 내 이번 주 거래 건수
+  const myWeekTrade = window._weekTrade.filter(r => r.authorId === ME.uid).length;
+  const dashTrade = document.getElementById('dashTradeCount'); if(dashTrade) dashTrade.textContent = myWeekTrade;
+
+  // 내 이번 주 경고
+  const myWeekWarn = window._weekWarn.filter(w => w.targetId === ME.uid).length;
+  const dashWarn = document.getElementById('dashWarnCount'); if(dashWarn) dashWarn.textContent = myWeekWarn;
   // 출근률 (이번 주 출근일 / 오늘까지 경과일)
   const rateEl = document.getElementById('dashAttRate');
   if (rateEl && window._attDataCache) {
@@ -1930,7 +1957,7 @@ function renderDashboard(membersSnap, rpData, logData) {
     for(let i=0;i<daysPassed;i++){
       const d2 = new Date(mon); d2.setDate(mon.getDate()+i);
       const ds = d2.toISOString().split('T')[0];
-      if(window._attDataCache.find(a=>a.userId===ME.uid&&a.date===ds)) attended++;
+      if(window._attDataCache.find(a=>a.userId===ME.uid&&a.date===ds&&a.archived!==true)) attended++;
     }
     rateEl.textContent = daysPassed>0 ? Math.round(attended/daysPassed*100)+'%' : '-';
   }
@@ -1938,11 +1965,15 @@ function renderDashboard(membersSnap, rpData, logData) {
   const rkBoard = document.getElementById('rkBoard');
   if (rkBoard) {
     const isCo = isCorp();
-    const sorted = [...membersSnap].sort((a,b) => {
-      const va = isCo ? (b.data().trade_count||0) : (b.data().rp_score||0);
-      const vb = isCo ? (a.data().trade_count||0) : (a.data().rp_score||0);
-      return va - vb;
-    });
+    // 이번 주 실적으로 집계 (누적 아님)
+    const weekScore = {};
+    if (isCo) {
+      (window._weekTrade||[]).forEach(r => { weekScore[r.authorId] = (weekScore[r.authorId]||0) + 1; });
+    } else {
+      (window._weekRp||[]).forEach(r => { weekScore[r.authorId] = (weekScore[r.authorId]||0) + (r.realScore ?? r.score ?? 0); });
+    }
+    window._weekScoreMap = weekScore;
+    const sorted = [...membersSnap].sort((a,b) => (weekScore[b.id]||0) - (weekScore[a.id]||0));
     if (!sorted.length) { rkBoard.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3);">팩션원이 없습니다.</div>'; }
     else {
       rkBoard.innerHTML='';
@@ -1951,7 +1982,7 @@ function renderDashboard(membersSnap, rpData, logData) {
         const pcls=i===0?'p1':i===1?'p2':i===2?'p3':'';
         const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1;
         const div=document.createElement('div'); div.className='rki'+(i===0?' top':'');
-        div.innerHTML=`<div class="rkp ${pcls}">${medal}</div><div class="rka">${d.avatar?`<img src="${d.avatar}">`:(d.username?.[0]||'?')}</div><div class="rkn">${esc(d.username)||'-'}${isMe?'<span style="font-size:10px;color:var(--p);margin-left:4px;">(나)</span>':''}</div><div class="rks">${d.rp_score||0}점</div>`;
+        div.innerHTML=`<div class="rkp ${pcls}">${medal}</div><div class="rka">${d.avatar?`<img src="${d.avatar}">`:(d.username?.[0]||'?')}</div><div class="rkn">${esc(d.username)||'-'}${isMe?'<span style="font-size:10px;color:var(--p);margin-left:4px;">(나)</span>':''}</div><div class="rks">${(window._weekScoreMap?.[m.id]||0)}${isCo?'건':'점'}</div>`;
         rkBoard.appendChild(div);
       });
     }
@@ -2491,7 +2522,7 @@ async function approveRp(btn, id, authorId, score) {
     const realScore = zone
       ? (rpData.result === 'win' ? (zone.winScore||0) : (zone.loseScore||0))
       : (rpData.score || 0);
-    await updateDoc(rpRef,{status:'approved'});
+    await updateDoc(rpRef,{status:'approved', realScore, approvedAt:serverTimestamp()});
     if(rpData.authorId && realScore){
       await updateDoc(doc(db,'factions',ME.factionId,'members',rpData.authorId),{rp_score:fsIncrement(realScore)});
     }
