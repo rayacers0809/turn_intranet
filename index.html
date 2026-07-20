@@ -1202,11 +1202,19 @@ window.checkGov = function() {
   return isGovFaction();
 };
 // 주간 키 (일요일 00시 기준)
-function getWeekKey(d) {
+// 이번 주 일요일 00:00 (로컬 기준) Date 객체
+function getWeekStart(d) {
   d = d || new Date();
-  const day = d.getDay(); // 0=일요일
-  const sunday = new Date(d); sunday.setDate(d.getDate() - day); sunday.setHours(0,0,0,0);
-  return sunday.toISOString().split('T')[0]; // 그 주 일요일 날짜
+  const sunday = new Date(d);
+  sunday.setDate(d.getDate() - d.getDay()); // 0=일요일
+  sunday.setHours(0,0,0,0);
+  return sunday;
+}
+// 주간 키 (일요일 00:00 기준, 로컬 날짜 - UTC 변환 안 함)
+function getWeekKey(d) {
+  const s = getWeekStart(d);
+  const p = n => String(n).padStart(2,'0');
+  return `${s.getFullYear()}-${p(s.getMonth()+1)}-${p(s.getDate())}`;
 }
 
 const TYPES = {
@@ -1696,6 +1704,7 @@ let _unsubscribers = [];
 function teardownListeners() {
   _unsubscribers.forEach(u => { try { u(); } catch(e){} });
   _unsubscribers = [];
+  if (window._weekWatcher) { clearInterval(window._weekWatcher); window._weekWatcher = null; }
 }
 
 function setupRealtimeListeners() {
@@ -1774,6 +1783,18 @@ function setupRealtimeListeners() {
 
   // 11-1. 벌금 (공무 팩션만)
   if (isGovFaction()) {
+    // 주간 경계 감시 - 일요일 00시가 지나면 통계 자동 초기화
+    window._curWeekKey = getWeekKey();
+    if (window._weekWatcher) clearInterval(window._weekWatcher);
+    window._weekWatcher = setInterval(() => {
+      const nowKey = getWeekKey();
+      if (nowKey !== window._curWeekKey) {
+        window._curWeekKey = nowKey;
+        if (window._finesCache) renderFineStats(window._finesCache);
+        toast('새로운 주가 시작되어 벌금 실적이 초기화되었습니다.','info');
+      }
+    }, 60000); // 1분마다 확인
+
     _unsubscribers.push(onSnapshot(query(collection(db,'factions',fid,'fines'), orderBy('createdAt','desc'), limit(200)), (snap) => {
       window._finesCache = snap.docs.map(d => ({ id:d.id, ...d.data() }));
       if(document.getElementById('page-fines')?.classList.contains('active')) renderFineStats(window._finesCache);
@@ -2127,17 +2148,24 @@ async function submitFine() {
 function renderFineStats(finesData) {
   const tbody = document.getElementById('fineStatsBody');
   if(!tbody) return;
-  const weekKey = getWeekKey();
-  // 이번 주 부과분만
-  const thisWeek = finesData.filter(f => f.weekKey === weekKey);
+  const weekKey  = getWeekKey();
+  const weekStart = getWeekStart();          // 이번 주 일요일 00:00
+  const weekEnd   = new Date(weekStart); weekEnd.setDate(weekStart.getDate()+7);
+
+  // 이번 주 부과분만 - 실제 작성 시각 기준 (저장된 weekKey 형식과 무관하게 정확)
+  const thisWeek = finesData.filter(f => {
+    if (f.archived === true) return false;   // 관리자가 마감(초기화)한 건 제외
+    const t = f.createdAt?.toDate?.();
+    if (t) return t >= weekStart && t < weekEnd;
+    return f.weekKey === weekKey;            // createdAt 없으면 weekKey로 폴백
+  });
 
   // 주간 범위 표시
   const range = document.getElementById('fineWeekRange');
   if(range) {
-    const sun = new Date(weekKey);
-    const sat = new Date(sun); sat.setDate(sun.getDate()+6);
+    const sat = new Date(weekStart); sat.setDate(weekStart.getDate()+6);
     const fmt = d => `${d.getMonth()+1}/${d.getDate()}`;
-    range.textContent = `${fmt(sun)} ~ ${fmt(sat)}`;
+    range.textContent = `${fmt(weekStart)} ~ ${fmt(sat)} (일요일 00시 초기화)`;
   }
 
   // 인원별 집계
@@ -3791,7 +3819,7 @@ window.om=om; window.cm=cm; window.toast=toast;
 window.showLoading=showLoading; window.hideLoading=hideLoading;
 window.checkMaintenance=checkMaintenance; window.openOnlineList=openOnlineList; window.renderOnlineList=renderOnlineList;
 window.renderDashNotices=renderDashNotices; window.notifyWebhook=notifyWebhook;
-window.toggleFine=toggleFine; window.recalcFines=recalcFines; window.submitFine=submitFine; window.renderFineCategories=renderFineCategories; window.renderFineStats=renderFineStats;
+window.getWeekStart=getWeekStart; window.getWeekKey=getWeekKey; window.toggleFine=toggleFine; window.recalcFines=recalcFines; window.submitFine=submitFine; window.renderFineCategories=renderFineCategories; window.renderFineStats=renderFineStats;
 window.saveCz=saveCz; window.loadMyTheme=loadMyTheme;
 window.saveProfile=saveProfile; window.openEditProfile=openEditProfile;
 window.saveFactionInfo=saveFactionInfo; window.saveSettings=saveSettings; window.loadSettingsToggles=loadSettingsToggles;
